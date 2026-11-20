@@ -4,13 +4,16 @@ class Administrator(Person):
     def __init__(self, person_id, name, age, email, date_of_birth, gender, access_level):
         super().__init__(person_id, name, age, email, date_of_birth, gender)
         self.__access_level = access_level
-
+    # Getter method to retrieve the access level of the administrator.
     def get_access_level(self):
         return self.__access_level
-
+    # Setter method to update the access level of the administrator with validation.
     def set_access_level(self, access_level):
         if not access_level.strip():
             raise ValueError("Access level cannot be empty")
         self.__access_level = access_level
-        
-       
+    #polymorphism: Overriding the get_person_details method to include the access level of the administrator. This demonstrates polymorphism, where the same method name behaves differently based on the object calling it. 
+    def get_person_details(self):
+        details = super().get_person_details()
+        details["access_level"] = self.get_access_level()
+        return details

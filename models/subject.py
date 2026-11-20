@@ -20,7 +20,6 @@ class Subject:
             raise ValueError("Subject name cannot be empty")
 
         self.__subject_name = subject_name
-
     # Getter method to retrieve the assigned teacher.
     def get_teacher(self):
         return self.__teacher
@@ -31,3 +30,4 @@ class Subject:
             raise ValueError("Teacher cannot be empty")
 
         self.__teacher = teacher
+        

@@ -1,18 +1,28 @@
 from models.person import Person
 class Teacher(Person):
-
-    def __init__(self, person_id, name, age, email, date_of_birth, gender, subject_taught):
-        super().__init__(person_id, name, age, email, date_of_birth, gender)
+    def __init__(self, person_id, first_name, last_name, age, email, date_of_birth, gender, subject_taught):
+        super().__init__(person_id, first_name, last_name, age, email, date_of_birth, gender)
         self.__subject_taught = subject_taught
-
+    # Getter method to retrieve the subject taught by the teacher.
     def get_subject_taught(self):
         return self.__subject_taught
-
+    # Setter method to update the subject taught by the teacher with validation.
     def set_subject_taught(self, subject_taught):
-        if not subject_taught.strip():
+        # Validation to ensure that the subject taught is a non-empty string.
+        if not isinstance(subject_taught, str) or not subject_taught.strip():
             raise ValueError("Subject taught cannot be empty")
 
         self.__subject_taught = subject_taught
-      
+    #Polymorphism: Overriding the get_person_details method to include the subject taught by the teacher. This demonstrates polymorphism, where the same method name behaves differently based on the object calling it.
+    def get_person_details(self):
+        details = super().get_person_details()
+        details["subject_taught"] = self.get_subject_taught()
+        return details
+    
+    #implementing the abstract method from the Person class to return the role of the teacher. This is an example of abstraction, where we define a method in the abstract class and provide its implementation in the subclass. 
+    def get_role(self):
+        return "Teacher"
         
-
+#teacher1 = Teacher(20257978, "John", "Doe", 35, "john.doe@example.com", "1988-05-15", "Male", "Mathematics")
+#teacher1.set_subject_taught("Physics")
+#print(teacher1.get_person_details())
