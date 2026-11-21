@@ -12,6 +12,8 @@ class Student(Person):
        details = super().get_person_details()
        details["grade_level"] = self.get_grade_level()
        return details
-  
-  
+    """implementing the abstract method from the person class to return the role of the student. This is an example of abstraction, because we implement the abstract method in the child class, and declare it in the parent class."""
+    def get_role(self):
+       return "Student"
+
      

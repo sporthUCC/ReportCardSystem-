@@ -1,8 +1,8 @@
-from models.person import Person
-class Administrator(Person):
+from models.user import User
+class Administrator(User):
 
-    def __init__(self, person_id, name, age, email, date_of_birth, gender, access_level):
-        super().__init__(person_id, name, age, email, date_of_birth, gender)
+    def __init__(self, person_id, first_name, last_name, age, email, date_of_birth, gender, access_level):
+        super().__init__(person_id, first_name, last_name, age, email, date_of_birth, gender)
         self.__access_level = access_level
     # Getter method to retrieve the access level of the administrator.
     def get_access_level(self):
@@ -17,3 +17,13 @@ class Administrator(Person):
         details = super().get_person_details()
         details["access_level"] = self.get_access_level()
         return details
+    def get_role(self):
+        return "Administrator"
+    #creating method to return the adminstrator priviledges
+    def get_user_permission(self):
+        return [
+            "manage_student",
+            "generate_report",
+            "view_all_records",
+            "manage_subjects"
+        ]

@@ -15,11 +15,15 @@ class Person(ABC):
     """
     def get_person_id(self):
         return self.__person_id
-    
-    #executing the get_person_details method to return a dictionary of the person's details
+    """
+    Returning the details of a Person object in dictionary format for easy retrieval and access to individual details.
+     The get_person_id() getter method is used to retrieve the private person_id attribute instead of accessing it directly.
+     This follows encapsulation by controlling access to private attributes
+     
+     """
     def get_person_details(self):
         return {
-            "person_id": self.__person_id,
+            "person_id": self.get_person_id(),
             "first_name": self.first_name,
             "last_name": self.last_name,
             "age": self.age,
@@ -28,6 +32,8 @@ class Person(ABC):
             "gender": self.gender
         }
     
-        
+    @abstractmethod
+    def get_role(self):
+        pass
 
 

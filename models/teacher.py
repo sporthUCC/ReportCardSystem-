@@ -1,5 +1,5 @@
-from models.person import Person
-class Teacher(Person):
+from models.user import User
+class Teacher(User):
     def __init__(self, person_id, first_name, last_name, age, email, date_of_birth, gender, subject_taught):
         super().__init__(person_id, first_name, last_name, age, email, date_of_birth, gender)
         self.__subject_taught = subject_taught
@@ -22,6 +22,14 @@ class Teacher(Person):
     #implementing the abstract method from the Person class to return the role of the teacher. This is an example of abstraction, where we define a method in the abstract class and provide its implementation in the subclass. 
     def get_role(self):
         return "Teacher"
+    
+    # This defines the user role priviledges and inherits from the user
+    def get_user_permission(self):
+        return[
+            "enter_grades",
+            "update_grades",
+            "view_student_records"
+        ]
         
 #teacher1 = Teacher(20257978, "John", "Doe", 35, "john.doe@example.com", "1988-05-15", "Male", "Mathematics")
 #teacher1.set_subject_taught("Physics")
