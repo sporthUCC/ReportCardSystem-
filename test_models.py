@@ -1,4 +1,4 @@
-from models.person import Person
+"""from models.person import Person
 from models.user import User
 from models.student import Student
 from models.teacher import Teacher
@@ -32,4 +32,26 @@ print(teacher1.get_user_permission())
 print("\nADMINISTRATOR")
 print(admin1.get_role())
 print(admin1.get_person_details())
-print(admin1.get_user_permission())
+print(admin1.get_user_permission())"""
+
+
+from storage.json_storage import JSONStorage
+
+# Create a storage object
+student_storage = JSONStorage("data/students.json")
+
+# Sample student data
+students = [
+    {
+        "student_id": "S001",
+        "first_name": "John",
+        "last_name": "Brown",
+        "grade_level": 10
+    }
+]
+
+# Save student data
+student_storage.save_data(students)
+
+print(students)
+print("Student data saved successfully!")
