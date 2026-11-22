@@ -1,8 +1,8 @@
 from models.user import User
 class Administrator(User):
 
-    def __init__(self, person_id, first_name, last_name, age, email, date_of_birth, gender, access_level):
-        super().__init__(person_id, first_name, last_name, age, email, date_of_birth, gender)
+    def __init__(self, person_id, first_name, last_name, email, gender, access_level, *, date_of_birth=None):
+        super().__init__(person_id, first_name, last_name, email, gender, date_of_birth=date_of_birth)
         self.__access_level = access_level
     # Getter method to retrieve the access level of the administrator.
     def get_access_level(self):

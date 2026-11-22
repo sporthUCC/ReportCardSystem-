@@ -1,7 +1,7 @@
 from models.user import User
 class Teacher(User):
-    def __init__(self, person_id, first_name, last_name, age, email, date_of_birth, gender, subject_taught):
-        super().__init__(person_id, first_name, last_name, age, email, date_of_birth, gender)
+    def __init__(self, person_id, first_name, last_name, email, gender, subject_taught, *, date_of_birth=None):
+        super().__init__(person_id, first_name, last_name, email, gender, date_of_birth=date_of_birth)
         self.__subject_taught = subject_taught
     # Getter method to retrieve the subject taught by the teacher.
     def get_subject_taught(self):

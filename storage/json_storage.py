@@ -13,20 +13,31 @@ class JSONStorage:
         self.file_path = file_path
 
     # Load data from a JSON file
+  
     def load_data(self):
         try:
             with open(self.file_path, "r") as file:
-                return json.load(file)
 
-        # Handles if the file does not exist
+                # Read the contents of the file
+                content = file.read()
+
+                # Check if the file is empty
+                if not content.strip():
+                    return []
+
+                # Convert JSON data into Python data
+                return json.loads(content)
+
         except FileNotFoundError:
+            # Return an empty list if the file doesn't exist
             return []
 
         # Handles invalid JSON format
-        except json.JSONDecodeError:
-            return []
+        #except json.JSONDecodeError:
+            #return []
 
     # Opens the file in write mode and saves the data
     def save_data(self, data):
         with open(self.file_path, "w") as file:
+            #transforms python code into json format
             json.dump(data, file, indent=4)

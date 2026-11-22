@@ -4,4 +4,9 @@ from models.person import Person
 class User(Person, ABC):
  @abstractmethod
  def get_user_permission(self):
-  pass
+     pass
+ 
+ @abstractmethod
+ def get_role(self):
+     pass
+ 

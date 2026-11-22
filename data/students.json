@@ -1,8 +1,12 @@
 [
     {
-        "student_id": "S001",
-        "first_name": "John",
-        "last_name": "Brown",
-        "grade_level": 10
+        "person_id": "S002",
+        "first_name": "Saraijah",
+        "last_name": "Porth",
+        "email": "saraijah@email.com",
+        "date_of_birth": null,
+        "gender": "Female",
+        "grade_level": 10,
+        "parent_contact": null
     }
 ]

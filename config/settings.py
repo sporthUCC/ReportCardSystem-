@@ -14,5 +14,8 @@ FINAL_EXAM_WEIGHT = 0.30
 WINDOW_WIDTH = 1100
 WINDOW_HEIGHT = 700
 
-
+#File paths
+STUDENT_FILE = "data/students.json"
+GRADE_FILE = "data/grades.json"
+SUBJECT_FILE = "data/subjects.json"
 
