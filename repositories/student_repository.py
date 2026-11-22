@@ -12,7 +12,7 @@ class StudentRepository:
          for student_data in students:
             if student_data["person_id"] == student.get_person_id():
                 raise ValueError("Student ID already exists")
-         #Add the student id not duplicate is found
+         
          student_data = student.get_person_details()
          #adding the new student to the list 
          students.append(student_data)
