@@ -18,4 +18,6 @@ WINDOW_HEIGHT = 700
 STUDENT_FILE = "data/students.json"
 GRADE_FILE = "data/grades.json"
 SUBJECT_FILE = "data/subjects.json"
+ADMIN_FILE = "data/administrators.json"
+TEACHER_FILE = "data/teachers.json"
 

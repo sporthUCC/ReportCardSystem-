@@ -1,0 +1,11 @@
+[
+    {
+        "person_id": "T001",
+        "first_name": "John",
+        "last_name": "Doe",
+        "email": "john.doe@email.com",
+        "date_of_birth": null,
+        "gender": "Male",
+        "subject_taught": "Mathematics"
+    }
+]
