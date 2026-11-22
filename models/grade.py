@@ -1,9 +1,3 @@
-from config.settings import (
-   COURSEWORK_WEIGHT,
-    PROJECT_WEIGHT,
-    MIDTERM_WEIGHT,
-    FINAL_EXAM_WEIGHT
-)
 
 class Grade:
     def __init__(self, grade_id, student_id, subject_id, coursework, project, midterm, final_exam):
@@ -95,14 +89,8 @@ class Grade:
             raise ValueError("Final Exam score must be between 0 and 100.")
 
         self.__final_exam = value
-        
-    def calculate_final_grade(self):
-        return (
-            self.__coursework * COURSEWORK_WEIGHT
-            + self.__project * PROJECT_WEIGHT
-            + self.__midterm * MIDTERM_WEIGHT
-            + self.__final_exam *FINAL_EXAM_WEIGHT
-        )
+    
+    #returning student grade details    
     def get_grade_details(self):
         return {
             "grade_id": self.get_grade_id(),
@@ -111,6 +99,5 @@ class Grade:
             "coursework": self.get_coursework(),
             "project": self.get_project(),
             "midterm": self.get_midterm(),
-            "final_exam": self.get_final_exam(),
-            "final_grade": self.calculate_final_grade()
+            "final_exam": self.get_final_exam()
         }
