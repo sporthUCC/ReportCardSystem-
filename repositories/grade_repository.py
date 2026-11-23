@@ -30,7 +30,7 @@ class GradeRepository:
                     "Grade record already exists for this student and subject."
                 )
 
-        # Convert the Grade object into a dictionary.
+        # convert the Grade object into a dictionary.
         grade_data = grade.get_grade_details()
 
         # Add the dictionary to the existing list.
@@ -92,7 +92,7 @@ class GradeRepository:
         for grade_data in grades:
 
             # Check if the grade ID matches.
-            if grade_data["grade_id"] == grade_id:
+            if grade_data["grade_id"].upper() == grade_id.upper():
 
                 # Update coursework if provided.
                 if "coursework" in update_data:

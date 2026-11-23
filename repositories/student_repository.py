@@ -6,6 +6,10 @@ class StudentRepository:
     def __init__(self):
          self.storage = JSONStorage(STUDENT_FILE)
     
+    # Retrieves all student records
+    def get_all_students(self):
+        return self.storage.load_data()
+    
     def add_student(self, student):
          students = self.storage.load_data()
          # Check for duplicate ID first
@@ -52,7 +56,16 @@ class StudentRepository:
                 # Update the parent's contact if provided
                 if "parent_contact" in update_data:
                     student_data["parent_contact"] = update_data["parent_contact"]
+                
+                #update email 
+                
+                # Update the student's email if provided
+                if "email" in update_data:
+                    student_data["email"] = update_data["email"]
 
+                if "date_of_birth" in update_data:
+                    dob = update_data["date_of_birth"]
+                    student_data["date_of_birth"] = dob.isoformat() if dob else None
                 # Save the updated student records
                 self.storage.save_data(students)
 

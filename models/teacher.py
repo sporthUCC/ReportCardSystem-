@@ -1,8 +1,8 @@
 from models.user import User
 class Teacher(User):
-    def __init__(self, person_id, first_name, last_name, email, gender, subject_taught, *, date_of_birth=None):
+    def __init__(self, person_id, first_name, last_name, email, gender=None, subject_taught=None, *, date_of_birth=None):
         super().__init__(person_id, first_name, last_name, email, gender, date_of_birth=date_of_birth)
-        self.__subject_taught = subject_taught
+        self.set_subject_taught(subject_taught)
     # Getter method to retrieve the subject taught by the teacher.
     def get_subject_taught(self):
         return self.__subject_taught
@@ -31,6 +31,3 @@ class Teacher(User):
             "view_student_records"
         ]
         
-#teacher1 = Teacher(20257978, "John", "Doe", 35, "john.doe@example.com", "1988-05-15", "Male", "Mathematics")
-#teacher1.set_subject_taught("Physics")
-#print(teacher1.get_person_details())
