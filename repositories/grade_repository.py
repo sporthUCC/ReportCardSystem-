@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from storage.json_storage import JSONStorage
 from config.settings import GRADE_FILE
 # This grade repository is responsible for saving the grade records.
@@ -37,7 +36,6 @@ class GradeRepository:
 
         grades.append(record)
         self.storage.save_data(grades)
-=======
 
 from storage.json_storage import JSONStorage
 from config.settings import GRADE_FILE
@@ -214,4 +212,3 @@ class GradeRepository:
 
         # Return None if no matching records are found.
         return None
->>>>>>> e7b8d7de3f9177bc17e747a9a8335bac7de93da1

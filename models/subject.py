@@ -1,4 +1,3 @@
-
 class Subject:
 
     # Initialize the Subject class with subject_id, subject_name, and teacher_id.

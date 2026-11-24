@@ -1,4 +1,3 @@
-
 class Grade:
     def __init__(self, grade_id, student_id, subject_id, coursework, project, midterm, final_exam):
         self.__grade_id = grade_id
