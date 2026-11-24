@@ -6,6 +6,21 @@ The SubjectRepository is responsible for managing and manipulating subject recor
 class SubjectRepository:
     def __init__(self):
         self.storage = JSONStorage(SUBJECT_FILE)
+        
+    #get all subjects
+    def get_all_subjects(self):
+        return self.storage.load_data() 
+    
+    def get_subject_by_id(self, subject_id):
+        subjects = self.storage.load_data()
+
+        for subject in subjects:
+            if subject["subject_id"] == subject_id:
+                return subject
+
+        return None
+    
+    #adding subjects to the student_file
     def add_subject(self, subject):
        subjects = self.storage.load_data()
        

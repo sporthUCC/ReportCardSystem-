@@ -1,7 +1,9 @@
 from models.user import User
 class Administrator(User):
 
-    def __init__(self, person_id, first_name, last_name, email, gender, access_level, *, date_of_birth=None):
+    def __init__(self, person_id, first_name, last_name, email, gender=None, access_level=None, *, date_of_birth=None):
+        if access_level is None:
+            raise ValueError("Access level cannot be empty")
         super().__init__(person_id, first_name, last_name, email, gender, date_of_birth=date_of_birth)
         self.__access_level = access_level
     # Getter method to retrieve the access level of the administrator.

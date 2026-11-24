@@ -9,6 +9,8 @@ from models.administrator import Administrator
 from services.admin_service import AdminService
 from models.student import Student
 from services.teacher_service import TeacherService
+from repositories.grade_repository import GradeRepository
+from models.grade import Grade
 
 #student = student_repo.update_stusent("S002",{
  #"first_name": "Sarah",
@@ -42,7 +44,6 @@ print(student)
 student=student_repo.search_student("s002")
 print(student)
 
-"""
 
 #Testing subject repo
 
@@ -102,3 +103,48 @@ except ValueError as error:
 
 # View the record
 print(teacher_service.view_student_record("S002"))
+
+grade_repo.add_grade(grade1)
+grade_repo.add_grade(grade2)
+grade_repo.add_grade(grade3)
+
+
+#test ing grade repo
+grade_repo = GradeRepository()
+
+grade1 = Grade("GRD001", "STU001", "SUB001", 85, 90, 78, 88)
+
+grade2 = Grade("GRD002", "STU001", "SUB002", 80, 85, 90, 87)
+
+grade3 = Grade("GRD003", "STU002", "SUB001", 75, 80, 82, 79)
+
+print(grade_repo.update_grade("GRD001",{
+   "midterm":100,
+   "project": 100,
+   "final_exam": 87
+   
+} ))
+
+#delte works
+#test ing grade repo
+grade_repo = GradeRepository()
+
+grade1 = Grade("GRD001", "STU001", "SUB001", 85, 90, 78, 88)
+
+grade2 = Grade("GRD002", "STU001", "SUB002", 80, 85, 90, 87)
+
+grade3 = Grade("GRD003", "STU002", "SUB001", 75, 80, 82, 79)
+
+print(grade_repo.delete_grade("GRD001"))
+
+#test ing grade repo
+grade_repo = GradeRepository()
+
+grade1 = Grade("GRD001", "STU001", "SUB001", 85, 90, 78, 88)
+
+grade2 = Grade("GRD002", "STU001", "SUB002", 80, 85, 90, 87)
+
+grade3 = Grade("GRD003", "STU002", "SUB001", 75, 80, 82, 79)
+
+print(grade_repo.search_grades("STU002"))
+"""

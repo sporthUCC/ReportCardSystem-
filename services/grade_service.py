@@ -1,121 +1,179 @@
-class Student:
-    # ---------- Encapsulation: grade level ----------
-    @property
-    def grade_level(self):
-        """Getter method to retrieve the grade level."""
-        return self.__grade_level
 
-    @grade_level.setter
-    def grade_level(self, value):
-        try:
-            value = int(value)
-        except (TypeError, ValueError):
-            raise ValueError("Grade level must be an.")
-        if value not in self.VALID_GRADE_LEVELS:
-            raise ValueError(f"Grade level must be between 7 and 11.")
-        self.__grade_level = value
+from repositories.grade_repository import GradeRepository
+from models.grade import Grade
+class GradeService:
+    def __init__(self, student_service, subject_service):
+        self.grade_repository = GradeRepository()
+        self.student_service = student_service
+        self.subject_service = subject_service
 
-    # keep your orginal methods for adding scores, calculating final grades, and generating report cards here
-    def get_grade_level(self):
-        """Getter method to retrieve the grade level."""
-        return self.__grade_level
+    # Retrieves all grades
+    def get_all_grades(self):
+        # Ask the repository to load all grades
+        all_grades = self.grade_repository.get_all_grades()
 
-    # ---------- Encapsulation: parent contact (optional) ----------
-    @property
-    def parent_contact(self):
-        """Getter method to retrieve the parent contact information."""
-        return self.__parent_contact
+        # Return all grades
+        return all_grades
 
-    @parent_contact.setter
-    def parent_contact(self, value):
-        """Setter method to set the parent contact information."""
-        self.__parent_contact = value
+    # Generates a unique grade ID
+    def generate_grade_id(self):
+        # Retrieve all existing grades
+        grades = self.grade_repository.get_all_grades()
 
-    # ---------- Grade entry ----------
-    @staticmethod
-    def validate_score(value):
-        """Validate that the score is a number between 0 and 100."""
-        if value is None or str(value).strip() == "":
-            raise ValueError("Grade cannot be empty.")
-        try:
-            score = float(value)
-        except ValueError:
-            raise ValueError("Grade must be a number, not a letter.")
-        if score < 0 or score > 100:
-            raise ValueError("Grade must be between 0 and 100.")
-        return score
-
-    def set_score(self, subject, category, score):
-        """Set the score for a specific subject and category."""
-        category = category.lower()
-        if category not in self.CATEGORIES:
-            raise ValueError(f"Unkown category: {category}")
-        score = self.validate_score(score)
-        self.__subject_scores.setdefault(subject, {})[category] = score
-
-    def get_score(self, subject):
-        """Get the score for a specific subject and category."""
-        return dict(self.__subject_scores.get(subject, {}))
-
-    def get_subjects(self):
-        """Get a list of subjects for which scores have been entered."""
-        return list(self.__subject_scores.keys())
-
-    # ---------- Calculations ----------
-    def subject_grade(self, subject):
-        """Weighted total for a subject, or None if any category is missing."""
-        scores = self.__subject_scores.get(subject)
-        if set(scores.keys()) != set(self.CATEGORIES.keys()):
-            return None  # Missing category
-        return sum(scores[cat] * weight for cat, weight in self.CATEGORIES.items())
-
-    def calculate_average(self):
-        """Sum of subject grades / number of subjects WITH grades."""
-        grades = [grade for subject in self.__subject_scores 
-                  if (grade := self.subject_grade(subject)) is not None]
+        # Check if there are no existing grades
         if not grades:
-            return None  # No subjects with complete grades
-        return sum(grades) / len(grades)
+            return "GRD001"
 
-    @staticmethod
-    def letter_grade(average):
-        """Convert numeric average to letter grade."""
-        if average is None:
-            return None
-        if average >= 90: return "A"
-        if average >= 80: return "B"
-        if average >= 70: return "C"
-        if average >= 60: return "D"
-        return "F"
+        # Extract the numeric portions of existing IDs
+        grade_numbers = []
 
-    @staticmethod
-    def performance_level(average):
-        levels = {"A": "Excellent", "B": "Very Good", "C": "Good", 
-                  "D": "Below Average", "F": "Needs Improvement"}
-        return levels.get(Student.letter_grade(average), "No grade yet")
+        for grade in grades:
+            grade_number = int(grade["grade_id"][3:])
+            grade_numbers.append(grade_number)
 
-    def teachers_comments(self):
-        """Generate teacher's comments based on the student's average."""
-        average = self.calculate_average()
-        comments = {
-            "A": "Outstanding performance! Keep up the excellent work.",
-            "B": "Very good job! You're doing well, but there's room for improvement.",
-            "C": "Good effort! Focus on areas that need improvement.",
-            "D": "Below average. Consider seeking extra help to improve.",
-            "F": "Needs significant improvement. Please consult with your teacher."
-        } 
-        return comments.get(self.letter_grade(average), "No comment available.")
+        # Find the highest existing grade number
+        highest_number = max(grade_numbers)
 
-    # ---------- Polymorphism (overrides Person's abstract methods) ----------
-    def get_person_details(self):
-        details = super().get_person_details()
-        details["grade_level"] = self.grade_level
-        details["parent_contact"] = self.parent_contact
-        return details
+        # Generate the next grade ID
+        next_number = highest_number + 1
 
-    def display_information(self):
-        avg = self.calculate_average()
-        avg_text = f"{avg:.1f}" if avg is not None else "N/A"
-        return (f"student ID: {self.person_id}"
-                 f"Name: {self.first_name} {self.last_name}, "
-                 f"Grade: {self.grade_level} | Average: {avg_text}")
+        return f"GRD{next_number:03d}"
+
+    # Retrieves a grade by ID
+    def get_grade_by_id(self, grade_id):
+        # Ask the repository to find the grade
+        grade = self.grade_repository.get_grade_by_id(grade_id)
+
+        # Check whether the grade exists
+        if grade is None:
+            raise ValueError("Grade not found.")
+
+        return grade
+
+    # Adds a new grade
+    def add_grade(self, student_id, subject_id, coursework, project, midterm, final_exam):
+        try:
+            # Check whether student exists
+            student = self.student_service.get_student_by_id(student_id)
+
+            if student is None:
+                raise ValueError("Student not found.")
+
+            # Check whether subject exists
+            subject = self.subject_service.get_subject_by_id(subject_id)
+
+            if subject is None:
+                raise ValueError("Subject not found.")
+
+            # Generate a unique grade ID
+            grade_id = self.generate_grade_id()
+
+            # Create Grade object
+            stu_grade = Grade(
+                grade_id,
+                student_id,
+                subject_id,
+                coursework,
+                project,
+                midterm,
+                final_exam
+            )
+
+            # Save grade information
+            self.grade_repository.add_grade(stu_grade)
+
+            return "Grade added successfully."
+
+        except ValueError as err:
+            return str(err)
+
+    # Updates an existing grade
+    def update_grade(self, grade_id, update_data):
+     try:
+         # Check whether grade exists
+         grade = self.grade_repository.get_grade_by_id(grade_id)
+
+         if grade is None:
+             raise ValueError("Grade not found.")
+
+         # Check whether update information was provided
+         if not update_data:
+             raise ValueError("No information provided for update.")
+
+         # Validate coursework if provided
+         if "coursework" in update_data:
+             coursework = update_data["coursework"]
+
+             if isinstance(coursework, bool) or not isinstance(coursework, (int, float)):
+                 raise ValueError("Coursework must be a number.")
+
+             if coursework < 0 or coursework > 100:
+                 raise ValueError("Coursework must be between 0 and 100.")
+
+         # Validate project if provided
+         if "project" in update_data:
+             project = update_data["project"]
+
+             if isinstance(project, bool) or not isinstance(project, (int, float)):
+                 raise ValueError("Project must be a number.")
+
+             if project < 0 or project > 100:
+                 raise ValueError("Project must be between 0 and 100.")
+
+         # Validate midterm if provided
+         if "midterm" in update_data:
+             midterm = update_data["midterm"]
+
+             if isinstance(midterm, bool) or not isinstance(midterm, (int, float)):
+                 raise ValueError("Midterm must be a number.")
+
+             if midterm < 0 or midterm > 100:
+                 raise ValueError("Midterm must be between 0 and 100.")
+
+         # Validate final exam if provided
+         if "final_exam" in update_data:
+             final_exam = update_data["final_exam"]
+
+             if isinstance(final_exam, bool) or not isinstance(final_exam, (int, float)):
+                 raise ValueError("Final exam must be a number.")
+
+             if final_exam < 0 or final_exam > 100:
+                 raise ValueError("Final exam must be between 0 and 100.")
+
+         # Check for invalid fields
+         allowed_fields = ["coursework", "project", "midterm", "final_exam"]
+
+         for field in update_data:
+             if field not in allowed_fields:
+                 raise ValueError(f"Invalid field: {field}")
+
+         # Send updated information to the repository
+         updated = self.grade_repository.update_grade(grade_id, update_data)
+
+         if updated:
+             return "Grade updated successfully."
+
+         return "Unable to update grade."
+
+     except ValueError as err:
+         return str(err)
+
+    # Deletes an existing grade
+    def delete_grade(self, grade_id):
+        try:
+            # Check whether grade exists
+            grade = self.grade_repository.get_grade_by_id(grade_id)
+
+            if grade is None:
+                raise ValueError("Grade not found.")
+
+            # Ask repository to delete the grade
+            deleted = self.grade_repository.delete_grade(grade_id)
+
+            if deleted:
+                return "Grade deleted successfully."
+
+            return "Unable to delete grade."
+
+        except ValueError as err:
+            return str(err)

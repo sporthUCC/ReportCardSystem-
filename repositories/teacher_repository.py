@@ -5,6 +5,9 @@ from config.settings import TEACHER_FILE
 class TeacherRepository:
     def __init__(self):
         self.storage = JSONStorage(TEACHER_FILE)
+    
+    def get_all_teachers(self):
+      return self.storage.load_data()
 
     def add_teacher(self, teacher):
         """Adds a new teacher to the storage."""
@@ -12,7 +15,7 @@ class TeacherRepository:
 
         # Check for duplicate ID
         for teacher_data in teachers:
-            if teacher_data["person_id"] == teacher.get_person_id():
+            if teacher_data["person_id"].strip().upper() == teacher.get_person_id().strip().upper():
                 raise ValueError("Teacher ID already exists")
 
         #Convert the teacher object to a dictionary before saving
@@ -36,7 +39,7 @@ class TeacherRepository:
     def update_teacher(self, teacher_id, update_data):
         teachers = self.storage.load_data()
         for teacher_data in teachers:
-            if teacher_data["person_id"] == teacher_id:
+            if teacher_data["person_id"].strip().upper() == teacher_id.strip().upper():
 
                 # Update the teacher's first name if provided
                 if "first_name" in update_data:
@@ -51,8 +54,8 @@ class TeacherRepository:
                     teacher_data["email"] = update_data["email"]
 
                 # Update the teacher's subject if provided
-                if "subject" in update_data:
-                    teacher_data["subject"] = update_data["subject"]
+                if "subject_taught" in update_data:
+                    teacher_data["subject_taught"] = update_data["subject_taught"]
 
                 # Save the updated teacher records
                 self.storage.save_data(teachers)
@@ -61,6 +64,17 @@ class TeacherRepository:
         # Return False if no teacher is found with the given ID
         return False
 
+    def delete_teacher(self, teacher_id):
+        teachers = self.storage.load_data()
+
+        for teacher in teachers:
+            if teacher["person_id"].strip().upper() == teacher_id.strip().upper():
+                teachers.remove(teacher)
+                self.storage.save_data(teachers)
+                return True
+
+        return False
+    
     def search_teacher(self, search_term):
         teachers = self.storage.load_data()
 

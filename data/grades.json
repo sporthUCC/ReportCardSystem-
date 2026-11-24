@@ -1,7 +1,30 @@
 [
     {
-        "student_id": "S002",
+        "grade_id": "GRD002",
+        "student_id": "STU001",
         "subject_id": "SUB002",
-        "coursework": 85.0
+        "coursework": 80,
+        "project": 85,
+        "midterm": 90,
+        "final_exam": 87
+    },
+    {
+        "grade_id": "GRD003",
+        "student_id": "STU002",
+        "subject_id": "SUB001",
+        "coursework": 75,
+        "project": 80,
+        "midterm": 82,
+        "final_exam": 79
+    }
+      ,
+       {
+        "grade_id": "GRD004",
+        "student_id": "STU002",
+        "subject_id": "SUB003",
+        "coursework": 80,
+        "project": 80,
+        "midterm": 82,
+        "final_exam": 98
     }
 ]

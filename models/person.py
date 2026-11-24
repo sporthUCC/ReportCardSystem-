@@ -3,12 +3,12 @@ from datetime import date
 
 class Person(ABC):
     """initializing the class with the attributes of the person, we are using the double underscore to make the person_id private, this is to ensure that we do not access it directly since it is a private attribute, we can only access it through the get_person_id method. This is a good practice to ensure that we do not change the person_id directly. This called encapsulation"""
-    def __init__(self, person_id, first_name, last_name, email, gender, *, date_of_birth=None):
+    def __init__(self, person_id, first_name, last_name, email, gender=None, *, date_of_birth=None):
         self.__person_id = person_id
         self.last_name = last_name
         self.first_name = first_name
         self.email = email
-        self.date_of_birth = date_of_birth 
+        self.set_date_of_birth(date_of_birth)
         self.gender = gender
     """
     creating a method, this is to enure that we do not access the person_id directly since it is a private attribute, we can only access it through this method. This is a good practice to ensure that we do not change the person_id directly. This called encapsulation

@@ -10,7 +10,7 @@ class AdministratorRepository:
 
         # Check for duplicate ID first
         for admin_data in administrators:
-            if admin_data["person_id"] == administrator.get_person_id():
+            if admin_data["person_id"].upper() == administrator.get_person_id().strip().upper():
                 raise ValueError("Administrator ID already exists")
             
         # Convert the Administrator object into a dictionary of its details
@@ -33,7 +33,7 @@ class AdministratorRepository:
     def update_administrator(self, admin_id, update_data):
         administrators = self.storage.load_data()
         for admin_data in administrators:
-            if admin_data["person_id"] == admin_id:
+            if admin_data["person_id"].upper() == admin_id.strip().upper():
                 # Update the administrator's first name if provided
                 if "first_name" in update_data:
                     admin_data["first_name"] = update_data["first_name"]
@@ -57,7 +57,7 @@ class AdministratorRepository:
         administrators = self.storage.load_data()
         for admin_data in administrators:
             # Compare the stored ID with the ID of the administrator to delete
-            if admin_data["person_id"] == admin_id:
+            if admin_data["person_id"].strip().upper() == admin_id.strip().upper():
                 administrators.remove(admin_data)
                 self.storage.save_data(administrators)
                 return True
