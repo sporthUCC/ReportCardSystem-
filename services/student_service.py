@@ -108,7 +108,7 @@ class StudentService:
 
         # Check whether the student exists
         if student is None:
-            return "Student not found."
+            raise ValueError ("Student not found.")
 
         return student
 
@@ -138,7 +138,7 @@ class StudentService:
         student = self.student_repository.get_student_by_id(student_id)
 
         if student is None:
-            return "Student not found."
+            raise ValueError ("Student not found.")
 
         try:
             # Validate the updated information

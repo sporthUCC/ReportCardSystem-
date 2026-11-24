@@ -1,128 +1,210 @@
+
+from repositories.teacher_repository import TeacherRepository
 from models.teacher import Teacher
-from repositories.student_repository import StudentRepository
-from repositories.subject_repository import SubjectRepository
-from repositories.grade_repository import GradeRepository
+from datetime import date
+
 
 class TeacherService:
-    """Handles everything a teacher is allowed to do: enter grades,
-    update grades and view student records."""
+    """Manages teacher records."""
 
-    # Assessment categories and their weights
-    CATEGORIES = {
-        "coursework": 0.30,
-        "project": 0.20,
-        "midterm": 0.20,
-        "final": 0.30,
-    }
+    def __init__(self):
+        """Creates the repository used to store teacher information."""
+        self.teacher_repository = TeacherRepository()
 
-    def __init__(self, teacher):
-        self.__teacher = teacher
-        self.__student_repo = StudentRepository()
-        self.__subject_repo = SubjectRepository()
-        self.__grade_repo = GradeRepository()
+    def generate_teacher_id(self):
+        """Creates the next available teacher ID."""
+        teachers = self.teacher_repository.get_all_teachers()
 
-    # ---------- Permission and validation helpers ----------
-    def _require_teacher(self):
-        """Only a real Teacher object may use this service."""
-        if not isinstance(self.__teacher, Teacher):
-            raise PermissionError("Access denied: teacher rights required.")
+        if not teachers:
+            return "TCH001"
 
-    @staticmethod
-    def _validate_grade(value):
-        """Reject empty, letters, negatives and values above 100."""
-        if value is None or str(value).strip() == "":
-            raise ValueError("Grade cannot be empty.")
+        numbers = []
+
+        for teacher in teachers:
+            number = int(teacher["person_id"][3:])
+            numbers.append(number)
+
+        highest_id = max(numbers)
+
+        return f"TCH{highest_id + 1:03d}"
+
+    def add_teacher(
+        self, first_name, last_name, email,
+        subject_taught, gender=None, *, date_of_birth=None
+    ):
+        """Checks the teacher's details and saves the new record."""
         try:
-            grade = float(value)
-        except ValueError:
-            raise ValueError("Grade must be a number, not letters.")
-        if grade < 0 or grade > 100:
-            raise ValueError("Grade must be between 0 and 100.")
-        return grade
+            if not isinstance(first_name, str) or not first_name.strip():
+                raise ValueError("First name cannot be empty.")
 
-    @classmethod
-    def _validate_category(cls, category):
-        category = str(category).strip().lower()
-        if category not in cls.CATEGORIES:
-            raise ValueError("Category must be coursework, project, midterm or final.")
-        return category
+            if not isinstance(last_name, str) or not last_name.strip():
+                raise ValueError("Last name cannot be empty.")
 
-    def _find_student_and_subject(self, student_id, subject_id):
-        """Looks both up, and makes sure this teacher may grade this subject."""
-        student_data = self.__student_repo.get_student_by_id(student_id)
-        if student_data is None:
-            raise ValueError("Student not found.")
+            if email is not None:
+                if not isinstance(email, str):
+                    raise ValueError("Email must be text.")
 
-        subject_data = self.__subject_repo.get_subject_by_id(subject_id)
-        if subject_data is None:
-            raise ValueError("Subject not found.")
+                email = email.strip()
 
-        # If the subject has a teacher assigned, it must be this teacher
-        assigned = subject_data.get("teacher_id")
-        if assigned and assigned.upper() != self.__teacher.get_person_id().upper():
-            raise PermissionError("Access denied: you are not assigned to this subject.")
+                if email and ("@" not in email or "." not in email.split("@")[-1]):
+                    raise ValueError("Please enter a valid email address.")
 
-        return student_data, subject_data
+            if not isinstance(subject_taught, str) or not subject_taught.strip():
+                raise ValueError("Subject taught cannot be empty.")
 
-    # ---------- Enter grades ----------
-    def enter_grade(self, student_id, subject_id, category, value):
-        """Enter a NEW grade. Use update_grade to change one that already exists."""
-        self._require_teacher()
-        category = self._validate_category(category)
-        grade = self._validate_grade(value)
-        student_data, subject_data = self._find_student_and_subject(student_id, subject_id)
+            if gender is not None:
+                if not isinstance(gender, str):
+                    raise ValueError("Gender must be text.")
 
-        record = self.__grade_repo.get_grade_record(
-            student_data["person_id"], subject_data["subject_id"])
-        if record is None:
-            record = {"student_id": student_data["person_id"],
-                      "subject_id": subject_data["subject_id"]}
+                gender = gender.strip() or None
 
-        if category in record:
-            raise ValueError(f"The {category} grade already exists. Use update_grade to change it.")
+            if date_of_birth is not None:
+                if not isinstance(date_of_birth, date):
+                    raise ValueError("Date of birth must be a valid date.")
 
-        record[category] = grade
-        self.__grade_repo.save_grade_record(record)
-        return True
+                if date_of_birth > date.today():
+                    raise ValueError("Date of birth cannot be in the future.")
 
-    # ---------- Update grades ----------
-    def update_grade(self, student_id, subject_id, category, value):
-        """Change a grade that was already entered."""
-        self._require_teacher()
-        category = self._validate_category(category)
-        grade = self._validate_grade(value)
-        student_data, subject_data = self._find_student_and_subject(student_id, subject_id)
+            person_id = self.generate_teacher_id()
 
-        record = self.__grade_repo.get_grade_record(
-            student_data["person_id"], subject_data["subject_id"])
-        if record is None or category not in record:
-            raise ValueError(f"No {category} grade to update. Use enter_grade first.")
+            teacher = Teacher(
+                person_id,
+                first_name.strip(),
+                last_name.strip(),
+                email,
+                gender,
+                subject_taught.strip(),
+                date_of_birth=date_of_birth
+            )
 
-        record[category] = grade
-        self.__grade_repo.save_grade_record(record)
-        return True
+            self.teacher_repository.add_teacher(teacher)
 
-    # ---------- View student records ----------
-    def search_student(self, search_term):
-        self._require_teacher()
-        return self.__student_repo.search_student(search_term)
+            return "Teacher added successfully."
 
-    def view_student_record(self, student_id):
-        """Returns the student's details plus their grades for every subject."""
-        self._require_teacher()
-        student_data = self.__student_repo.get_student_by_id(student_id)
-        if student_data is None:
-            raise ValueError("Student not found.")
+        except ValueError as err:
+            return str(err)
 
-        subjects = []
-        for record in self.__grade_repo.get_student_grades(student_data["person_id"]):
-            # Subject total is only worked out when all four categories are entered
-            if all(category in record for category in self.CATEGORIES):
-                total = sum(record[c] * w for c, w in self.CATEGORIES.items())
-            else:
-                total = None
-            subjects.append({"subject_id": record["subject_id"],
-                             "grades": record,
-                             "subject_total": total})
+    def get_teacher_by_id(self, teacher_id):
+        """Finds a teacher using their ID."""
+        teacher = self.teacher_repository.get_teacher_by_id(teacher_id)
 
-        return {"student": student_data, "subjects": subjects}
+        if teacher is None:
+            raise ValueError("Teacher not found.")
+
+        return teacher
+
+    def get_all_teachers(self):
+        """Returns all teachers stored in the system."""
+        return self.teacher_repository.get_all_teachers()
+
+    def update_teacher(self, teacher_id, update_data):
+        """Checks the updated details before saving the changes."""
+        try:
+            teacher = self.teacher_repository.get_teacher_by_id(teacher_id)
+
+            if teacher is None:
+                raise ValueError("Teacher not found.")
+
+            if not update_data:
+                raise ValueError("No information provided for update.")
+
+            allowed_fields = [
+                "first_name",
+                "last_name",
+                "email",
+                "subject_taught",
+                "gender",
+                "date_of_birth"
+            ]
+
+            for field in update_data:
+                if field not in allowed_fields:
+                    raise ValueError(f"Invalid field: {field}")
+
+            if "first_name" in update_data:
+                value = update_data["first_name"]
+
+                if not isinstance(value, str) or not value.strip():
+                    raise ValueError("First name cannot be empty.")
+
+                update_data["first_name"] = value.strip()
+
+            if "last_name" in update_data:
+                value = update_data["last_name"]
+
+                if not isinstance(value, str) or not value.strip():
+                    raise ValueError("Last name cannot be empty.")
+
+                update_data["last_name"] = value.strip()
+
+            if "email" in update_data:
+                email = update_data["email"]
+
+                if email is not None and not isinstance(email, str):
+                    raise ValueError("Email must be text.")
+
+                email = email.strip() if email else None
+
+                if email and ("@" not in email or "." not in email.split("@")[-1]):
+                    raise ValueError("Please enter a valid email address.")
+
+                update_data["email"] = email
+
+            if "subject_taught" in update_data:
+                subject = update_data["subject_taught"]
+
+                if not isinstance(subject, str) or not subject.strip():
+                    raise ValueError("Subject taught cannot be empty.")
+
+                update_data["subject_taught"] = subject.strip()
+
+            if "gender" in update_data:
+                gender = update_data["gender"]
+
+                if gender is not None and not isinstance(gender, str):
+                    raise ValueError("Gender must be text.")
+
+                update_data["gender"] = gender.strip() if gender else None
+
+            if "date_of_birth" in update_data:
+                dob = update_data["date_of_birth"]
+
+                if dob is not None and not isinstance(dob, date):
+                    raise ValueError("Date of birth must be a valid date.")
+
+                if dob is not None and dob > date.today():
+                    raise ValueError("Date of birth cannot be in the future.")
+
+                update_data["date_of_birth"] = (
+                    dob.isoformat() if dob else None
+                )
+
+            updated = self.teacher_repository.update_teacher(
+                teacher_id, update_data
+            )
+
+            if updated:
+                return "Teacher updated successfully."
+
+            return "Unable to update teacher."
+
+        except ValueError as err:
+            return str(err)
+
+    def delete_teacher(self, teacher_id):
+        """Removes a teacher from the system."""
+        try:
+            teacher = self.teacher_repository.get_teacher_by_id(teacher_id)
+
+            if teacher is None:
+                raise ValueError("Teacher not found.")
+
+            deleted = self.teacher_repository.delete_teacher(teacher_id)
+
+            if deleted:
+                return "Teacher deleted successfully."
+
+            return "Unable to delete teacher."
+
+        except ValueError as err:
+            return str(err)

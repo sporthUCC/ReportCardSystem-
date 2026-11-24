@@ -5,6 +5,9 @@ from config.settings import TEACHER_FILE
 class TeacherRepository:
     def __init__(self):
         self.storage = JSONStorage(TEACHER_FILE)
+    
+    def get_all_teachers(self):
+      return self.storage.load_data()
 
     def add_teacher(self, teacher):
         """Adds a new teacher to the storage."""
@@ -61,6 +64,17 @@ class TeacherRepository:
         # Return False if no teacher is found with the given ID
         return False
 
+    def delete_teacher(self, teacher_id):
+        teachers = self.storage.load_data()
+
+        for teacher in teachers:
+            if teacher["person_id"].strip().upper() == teacher_id.strip().upper():
+                teachers.remove(teacher)
+                self.storage.save_data(teachers)
+                return True
+
+        return False
+    
     def search_teacher(self, search_term):
         teachers = self.storage.load_data()
 

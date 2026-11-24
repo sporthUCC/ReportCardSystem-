@@ -15,6 +15,11 @@ class GradeRepository:
     def __init__(self):
         self.storage = JSONStorage(GRADE_FILE)
 
+    #get all the grades
+    def get_all_grades(self):
+        #return all grades
+        return self.storage.load_data()
+        
     # Add a grade record.
     def add_grade(self, grade):
 
@@ -79,46 +84,51 @@ class GradeRepository:
         # Return all matching grades.
         return student_grades
 
-    # Update an existing grade record.
+   # Update an existing grade record
     def update_grade(self, grade_id, update_data):
 
-        # Load all existing grade records.
+        # Load all existing grade records
         grades = self.storage.load_data()
 
-        # Remove leading and trailing spaces.
+        # Remove leading and trailing spaces
         grade_id = grade_id.strip()
 
-        # Loop through each grade record.
+        # Loop through each grade record
         for grade_data in grades:
 
-            # Check if the grade ID matches.
+            # Check if the grade ID matches
             if grade_data["grade_id"].upper() == grade_id.upper():
 
-                # Update coursework if provided.
+                # Update student ID if provided
+                if "student_id" in update_data:
+                    grade_data["student_id"] = update_data["student_id"]
+
+                # Update subject ID if provided
+                if "subject_id" in update_data:
+                    grade_data["subject_id"] = update_data["subject_id"]
+
+                # Update coursework if provided
                 if "coursework" in update_data:
                     grade_data["coursework"] = update_data["coursework"]
 
-                # Update project if provided.
+                # Update project if provided
                 if "project" in update_data:
                     grade_data["project"] = update_data["project"]
 
-                # Update midterm if provided.
+                # Update midterm if provided
                 if "midterm" in update_data:
                     grade_data["midterm"] = update_data["midterm"]
 
-                # Update final exam if provided.
+                # Update final exam if provided
                 if "final_exam" in update_data:
                     grade_data["final_exam"] = update_data["final_exam"]
 
-                # Save the updated grade records.
+                # Save the updated grade records
                 self.storage.save_data(grades)
 
-                # Return True because the grade was updated.
                 return True
 
-        # Return False if the grade ID was not found.
         return False
-
     # Delete a grade record using its grade ID.
     def delete_grade(self, grade_id):
 
