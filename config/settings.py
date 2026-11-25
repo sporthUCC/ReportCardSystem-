@@ -20,4 +20,4 @@ GRADE_FILE = "data/grades.json"
 SUBJECT_FILE = "data/subjects.json"
 ADMIN_FILE = "data/administrators.json"
 TEACHER_FILE = "data/teachers.json"
-
+USERS_FILE = "data/users.json"

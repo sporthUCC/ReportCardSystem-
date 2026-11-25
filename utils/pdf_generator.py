@@ -9,8 +9,8 @@ from reportlab.lib.units import cm
 from reportlab.platypus import (Image, Paragraph, SimpleDocTemplate, Spacer,
                                 Table, TableStyle)
 
-# School details come from config/settings.py. The getattr defaults mean the
-# generator still works if a setting (such as the motto) has not been added yet.
+# School details and weights come from config/settings.py. The getattr defaults
+# mean the generator still works if a setting has not been added yet.
 import config.settings as settings
 
 SCHOOL_NAME = getattr(settings, "SCHOOL_NAME", "School Name")
@@ -21,47 +21,56 @@ ACADEMIC_YEAR = getattr(settings, "ACADEMIC_YEAR", "2024 - 2025")
 LOGO_FILE = getattr(settings, "LOGO_FILE", "assets/logo.png")
 REPORTS_FOLDER = getattr(settings, "REPORTS_FOLDER", "reports")
 
+COURSEWORK_WEIGHT = getattr(settings, "COURSEWORK_WEIGHT", 0.30)
+PROJECT_WEIGHT = getattr(settings, "PROJECT_WEIGHT", 0.20)
+MIDTERM_WEIGHT = getattr(settings, "MIDTERM_WEIGHT", 0.20)
+FINAL_EXAM_WEIGHT = getattr(settings, "FINAL_EXAM_WEIGHT", 0.30)
+
 # Colours used in the layout
 PRIMARY = colors.HexColor("#2c3e50")
 LIGHT_ROW = colors.HexColor("#f2f4f7")
 GRID = colors.HexColor("#b0b7c3")
 
-# Column headings for the academic table (weights match the assignment)
-SCORE_COLUMNS = [
-    ("coursework", "Coursework\n(30%)"),
-    ("project", "Project\n(20%)"),
-    ("midterm", "Mid-Term\n(20%)"),
-    ("final", "Final Exam\n(30%)"),
-]
+# Letter grade -> points on the 4.0 scale
+GPA_POINTS = {"A": 4.0, "B": 3.0, "C": 2.0, "D": 1.0, "F": 0.0}
+
+PERFORMANCE = {"A": "Outstanding", "B": "Very Good", "C": "Good",
+               "D": "Satisfactory", "F": "Needs Improvement"}
+
+COMMENTS = {
+    "A": "Outstanding performance! Keep up the excellent work.",
+    "B": "Very good job! You're doing well, but there's room for improvement.",
+    "C": "Good effort! Focus on areas that need improvement.",
+    "D": "Below average. Consider seeking extra help to improve.",
+    "F": "Needs significant improvement. Please consult with your teacher.",
+}
 
 
 # ---------- Small helpers ----------
-def letter_grade(average):
-    """Letter grade for an average, using the assignment's scale."""
-    if average is None:
-        return "N/A"
-    if average >= 90:
+def letter_grade(score):
+    """Letter grade for a score, using the assignment's scale."""
+    if score is None:
+        return None
+    if score >= 90:
         return "A"
-    if average >= 80:
+    if score >= 80:
         return "B"
-    if average >= 70:
+    if score >= 70:
         return "C"
-    if average >= 60:
+    if score >= 60:
         return "D"
     return "F"
 
 
-def performance_level(average):
-    levels = {"A": "Outstanding", "B": "Very Good", "C": "Good",
-              "D": "Satisfactory", "F": "Needs Improvement"}
-    return levels.get(letter_grade(average), "No grades yet")
+def _percent(weight):
+    return f"{round(weight * 100)}%"
 
 
 def _format_score(value):
     """Shows a score with one decimal place, or a dash when it is missing."""
     if value is None:
         return "-"
-    return f"{value:.1f}"
+    return f"{float(value):.1f}"
 
 
 def _clean(value):
@@ -84,6 +93,54 @@ def _styles():
                                   textColor=PRIMARY, spaceBefore=10, spaceAfter=4),
         "body": ParagraphStyle("body", parent=base["Normal"], fontSize=10, leading=14),
         "cell": ParagraphStyle("cell", parent=base["Normal"], fontSize=9, leading=11),
+    }
+
+
+# ---------- Working out the figures the report data does not include ----------
+def summarize(report_data):
+    """Adds a letter grade and GPA points to every subject and works out the
+    overall average, GPA, letter and comment.
+
+    report_data is the dictionary returned by ReportService.prepare_report():
+        {"student": {...},
+         "subjects": [{"subject_name", "coursework", "project", "midterm",
+                       "final_exam", "final_grade"}, ...]}
+    If the report data already holds overall_average, overall_gpa or comment,
+    those values are used instead of being calculated here."""
+    rows = []
+    for subject in report_data.get("subjects", []):
+        final_grade = subject.get("final_grade")
+        letter = letter_grade(final_grade)
+        rows.append({
+            "subject_name": subject.get("subject_name"),
+            "coursework": subject.get("coursework"),
+            "project": subject.get("project"),
+            "midterm": subject.get("midterm"),
+            "final_exam": subject.get("final_exam"),
+            "final_grade": final_grade,
+            "letter": letter,
+            "gpa_points": GPA_POINTS.get(letter),
+        })
+
+    graded = [row for row in rows if row["final_grade"] is not None]
+
+    overall_average = report_data.get("overall_average")
+    if overall_average is None and graded:
+        overall_average = sum(r["final_grade"] for r in graded) / len(graded)
+
+    overall_gpa = report_data.get("overall_gpa")
+    if overall_gpa is None and graded:
+        overall_gpa = sum(r["gpa_points"] for r in graded) / len(graded)
+
+    overall_letter = letter_grade(overall_average)
+    comment = report_data.get("comment") or COMMENTS.get(overall_letter, "")
+
+    return {
+        "rows": rows,
+        "overall_average": overall_average,
+        "overall_gpa": overall_gpa,
+        "overall_letter": overall_letter,
+        "comment": comment,
     }
 
 
@@ -140,29 +197,43 @@ def _build_student_info(student, styles, generated_on):
     return [Paragraph("Student Information", styles["heading"]), table]
 
 
-def _build_grades_table(subjects, overall_average, styles):
-    """One row per subject with each assessment score, the subject average and its letter."""
-    header = (["Subject"] + [label for _, label in SCORE_COLUMNS]
-              + ["Subject\nAverage", "Letter\nGrade"])
+def _build_grades_table(summary, styles):
+    """One row per subject: the four scores, the final grade, letter and GPA points."""
+    header = [
+        "Subject",
+        f"Coursework\n({_percent(COURSEWORK_WEIGHT)})",
+        f"Project\n({_percent(PROJECT_WEIGHT)})",
+        f"Mid-Term\n({_percent(MIDTERM_WEIGHT)})",
+        f"Final Exam\n({_percent(FINAL_EXAM_WEIGHT)})",
+        "Final\nGrade",
+        "Letter\nGrade",
+        "GPA\nPoints",
+    ]
     rows = [header]
 
-    if not subjects:
-        rows.append(["No grades recorded yet", "", "", "", "", "", ""])
+    if not summary["rows"]:
+        rows.append(["No grades recorded yet"] + [""] * 7)
     else:
-        for subject in subjects:
-            scores = subject.get("scores", {})
-            average = subject.get("average")
-            rows.append(
-                [Paragraph(_clean(subject.get("subject_name")), styles["cell"])]
-                + [_format_score(scores.get(key)) for key, _ in SCORE_COLUMNS]
-                + [_format_score(average), letter_grade(average)]
-            )
+        for row in summary["rows"]:
+            rows.append([
+                Paragraph(_clean(row["subject_name"]), styles["cell"]),
+                _format_score(row["coursework"]),
+                _format_score(row["project"]),
+                _format_score(row["midterm"]),
+                _format_score(row["final_exam"]),
+                _format_score(row["final_grade"]),
+                _clean(row["letter"]),
+                _format_score(row["gpa_points"]),
+            ])
 
     # Overall row at the bottom
-    rows.append(["Overall Average", "", "", "", "",
-                 _format_score(overall_average), letter_grade(overall_average)])
+    rows.append(["Overall", "", "", "", "",
+                 _format_score(summary["overall_average"]),
+                 _clean(summary["overall_letter"]),
+                 "-" if summary["overall_gpa"] is None else f"{summary['overall_gpa']:.2f}"])
 
-    col_widths = [4.6 * cm, 2.0 * cm, 1.9 * cm, 2.0 * cm, 2.1 * cm, 2.2 * cm, 1.2 * cm]
+    col_widths = [4.1 * cm, 2.0 * cm, 1.8 * cm, 1.9 * cm, 2.1 * cm,
+                  1.6 * cm, 1.3 * cm, 1.4 * cm]
     table = Table(rows, colWidths=col_widths, repeatRows=1)
 
     last = len(rows) - 1
@@ -179,7 +250,7 @@ def _build_grades_table(subjects, overall_average, styles):
         ("GRID", (0, 0), (-1, -1), 0.5, GRID),
         ("TOPPADDING", (0, 0), (-1, -1), 5),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        # Overall average row
+        # Overall row
         ("BACKGROUND", (0, last), (-1, last), LIGHT_ROW),
         ("FONTNAME", (0, last), (-1, last), "Helvetica-Bold"),
         ("SPAN", (0, last), (4, last)),
@@ -188,18 +259,20 @@ def _build_grades_table(subjects, overall_average, styles):
     # Zebra striping on the subject rows
     for row_index in range(2, last, 2):
         style.append(("BACKGROUND", (0, row_index), (-1, row_index), LIGHT_ROW))
-    if not subjects:
+    if not summary["rows"]:
         style.append(("SPAN", (0, 1), (-1, 1)))
 
     table.setStyle(TableStyle(style))
     return [Paragraph("Academic Performance", styles["heading"]), table]
 
 
-def _build_summary(overall_average, styles):
-    average_text = _format_score(overall_average)
-    text = (f"<b>Overall Average:</b> {average_text}% &nbsp;&nbsp; "
-            f"<b>Grade:</b> {letter_grade(overall_average)} &nbsp;&nbsp; "
-            f"<b>Performance:</b> {performance_level(overall_average)}")
+def _build_summary(summary, styles):
+    letter = summary["overall_letter"]
+    text = (f"<b>Overall Average:</b> {_format_score(summary['overall_average'])}% "
+            f"&nbsp;&nbsp; <b>Grade:</b> {_clean(letter)} "
+            f"&nbsp;&nbsp; <b>Performance:</b> {PERFORMANCE.get(letter, 'No grades yet')}")
+    if summary["overall_gpa"] is not None:
+        text += f" &nbsp;&nbsp; <b>GPA (4.0 scale):</b> {summary['overall_gpa']:.2f}"
     return [Spacer(1, 8), Paragraph(text, styles["body"])]
 
 
@@ -217,7 +290,7 @@ def _build_comment(comment, styles):
     return [Paragraph("Teacher's Comment", styles["heading"]), box]
 
 
-def _build_signatures(styles):
+def _build_signatures():
     line = "_" * 32
     table = Table([[line, line], ["Teacher's Signature", "Principal's Signature"]],
                   colWidths=[8.0 * cm, 8.0 * cm])
@@ -240,21 +313,25 @@ def _footer(canvas, doc):
 
 
 # ---------- Public function ----------
-def generate_report_card(student, subjects, overall_average, comment=None,
-                         output_folder=None):
+def generate_report_card(report_data, comment=None, output_folder=None):
     """Builds the PDF report card and returns the path of the saved file.
 
-    student          dict with person_id, first_name, last_name, grade_level,
-                     gender, date_of_birth, parent_contact (extra keys are ignored)
-    subjects         list of dicts:
-                     {"subject_name": "Mathematics",
-                      "scores": {"coursework": 80, "project": 90,
-                                 "midterm": 70, "final": 85},
-                      "average": 81.5}
-    overall_average  number or None
-    comment          teacher's comment text, or None
-    output_folder    where to save; defaults to the reports folder
-    """
+    report_data    the dictionary from ReportService.prepare_report(student_id)
+    comment        optional teacher's comment; when left out, one is written
+                   from the student's overall average
+    output_folder  where to save; defaults to the reports folder
+
+    Raises ValueError if report_data is not a dictionary. prepare_report()
+    returns a text message instead of a dictionary when something is wrong
+    (for example "Student not found."), and that message is used as the error."""
+    if not isinstance(report_data, dict):
+        raise ValueError(str(report_data))
+
+    student = report_data["student"]
+    summary = summarize(report_data)
+    if comment:
+        summary["comment"] = comment
+
     folder = output_folder or REPORTS_FOLDER
     os.makedirs(folder, exist_ok=True)  # creates the reports folder if it is missing
 
@@ -276,33 +353,31 @@ def generate_report_card(student, subjects, overall_average, comment=None,
     story = []
     story += _build_header(styles)
     story += _build_student_info(student, styles, generated_on)
-    story += _build_grades_table(subjects, overall_average, styles)
-    story += _build_summary(overall_average, styles)
-    story += _build_comment(comment, styles)
-    story += _build_signatures(styles)
+    story += _build_grades_table(summary, styles)
+    story += _build_summary(summary, styles)
+    story += _build_comment(summary["comment"], styles)
+    story += _build_signatures()
 
     document.build(story, onFirstPage=_footer, onLaterPages=_footer)
     return file_path
 
 
 if __name__ == "__main__":
-    # Quick test: run with  python -m utils.pdf_generator
-    sample_student = {
-        "person_id": "S002", "first_name": "Saraijah", "last_name": "Porth",
-        "grade_level": 11, "gender": "Female", "date_of_birth": None,
-        "parent_contact": None,
+    # Quick test with data in the same shape ReportService.prepare_report() returns.
+    # Run with:  python -m utils.pdf_generator
+    sample_report = {
+        "student": {
+            "person_id": "S002", "first_name": "Saraijah", "last_name": "Porth",
+            "email": "saraijah@email.com", "date_of_birth": None, "gender": "Female",
+            "grade_level": 11, "parent_contact": None,
+        },
+        "subjects": [
+            {"subject_name": "Mathematics", "coursework": 80, "project": 90,
+             "midterm": 70, "final_exam": 85, "final_grade": 81.5},
+            {"subject_name": "English Language", "coursework": 60, "project": 60,
+             "midterm": 60, "final_exam": 60, "final_grade": 60.0},
+            {"subject_name": "Information Technology", "coursework": 95, "project": 92,
+             "midterm": 90, "final_exam": 94, "final_grade": 93.1},
+        ],
     }
-    sample_subjects = [
-        {"subject_name": "Mathematics",
-         "scores": {"coursework": 80, "project": 90, "midterm": 70, "final": 85},
-         "average": 81.5},
-        {"subject_name": "English Language",
-         "scores": {"coursework": 75, "project": 88, "midterm": 72, "final": 79},
-         "average": 78.0},
-        {"subject_name": "Spanish",
-         "scores": {"coursework": 65, "project": None, "midterm": None, "final": None},
-         "average": None},
-    ]
-    path = generate_report_card(sample_student, sample_subjects, 79.8,
-                                "Good work. More consistent effort will help you improve.")
-    print("Saved:", path)
+    print("Saved:", generate_report_card(sample_report))
