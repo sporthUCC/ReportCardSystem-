@@ -80,20 +80,3 @@ print("\nSTUDENT AGE")
 print(student1.calculate_age())
 
 """
-
-#testing the grade model
-grade1 = Grade("G001", "ST001", "SUB001", 80, 90, 75, 85)
-
-print(f"Grade ID: {grade1.get_grade_id()}")
-print(f"Student ID:{grade1.get_student_id()}")
-print(f"Subject ID:{grade1.get_subject_id()}")
-print("Coursework:", grade1.get_coursework())
-print("Project:", grade1.get_project())
-print("Midterm:", grade1.get_midterm())
-print("Final Exam:", grade1.get_final_exam())
-print("Final Grade:", grade1.calculate_final_grade())
-
-
-
-
-

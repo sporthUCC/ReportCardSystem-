@@ -20,22 +20,25 @@ class GradeRepository:
         #return all grades
         return self.storage.load_data()
         
+    
     # Add a grade record.
     def add_grade(self, grade):
 
         grades = self.storage.load_data()
 
-        # Check if a grade already exists for this student and subject.
+        # Check if a grade already exists for this student, subject and academic period.
         for grade_data in grades:
             if (
                 grade_data["student_id"] == grade.get_student_id()
                 and grade_data["subject_id"] == grade.get_subject_id()
+                and grade_data.get("academic_year") == grade.get_academic_year()
+                and grade_data.get("academic_term") == grade.get_academic_term()
             ):
                 raise ValueError(
-                    "Grade record already exists for this student and subject."
+                    "Grade record already exists for this student, subject and academic period."
                 )
 
-        # convert the Grade object into a dictionary.
+        # Convert the Grade object into a dictionary.
         grade_data = grade.get_grade_details()
 
         # Add the dictionary to the existing list.
@@ -122,6 +125,13 @@ class GradeRepository:
                 # Update final exam if provided
                 if "final_exam" in update_data:
                     grade_data["final_exam"] = update_data["final_exam"]
+                # Update academic year if provided
+                if "academic_year" in update_data:
+                    grade_data["academic_year"] = update_data["academic_year"]
+
+                # Update academic term if provided
+                if "academic_term" in update_data:
+                    grade_data["academic_term"] = update_data["academic_term"]
 
                 # Save the updated grade records
                 self.storage.save_data(grades)

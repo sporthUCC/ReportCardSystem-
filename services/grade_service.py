@@ -1,6 +1,15 @@
 
 from repositories.grade_repository import GradeRepository
 from models.grade import Grade
+
+#imprting course assement weight from the setting.py
+from config.settings import (
+    COURSEWORK_WEIGHT,
+    PROJECT_WEIGHT,
+    MIDTERM_WEIGHT,
+    FINAL_EXAM_WEIGHT
+)
+
 class GradeService:
     def __init__(self, student_service, subject_service):
         self.grade_repository = GradeRepository()
@@ -51,7 +60,7 @@ class GradeService:
         return grade
 
     # Adds a new grade
-    def add_grade(self, student_id, subject_id, coursework, project, midterm, final_exam):
+    def add_grade(self, student_id, subject_id, academic_year, academic_term, coursework, project, midterm, final_exam):
         try:
             # Check whether student exists
             student = self.student_service.get_student_by_id(student_id)
@@ -73,6 +82,8 @@ class GradeService:
                 grade_id,
                 student_id,
                 subject_id,
+                academic_year, 
+                academic_term,
                 coursework,
                 project,
                 midterm,
@@ -87,76 +98,99 @@ class GradeService:
         except ValueError as err:
             return str(err)
 
-    # Updates an existing grade
+   
+    # Updates an existing grade information
     def update_grade(self, grade_id, update_data):
-     try:
-         # Check whether grade exists
-         grade = self.grade_repository.get_grade_by_id(grade_id)
+        try:
+            # Check whether grade exists
+            grade = self.grade_repository.get_grade_by_id(grade_id)
 
-         if grade is None:
-             raise ValueError("Grade not found.")
+            if grade is None:
+                raise ValueError("Grade not found.")
 
-         # Check whether update information was provided
-         if not update_data:
-             raise ValueError("No information provided for update.")
+            # Check whether update information was provided
+            if not update_data:
+                raise ValueError("No information provided for update.")
 
-         # Validate coursework if provided
-         if "coursework" in update_data:
-             coursework = update_data["coursework"]
+            # Validate academic year if provided
+            if "academic_year" in update_data:
+                academic_year = update_data["academic_year"]
 
-             if isinstance(coursework, bool) or not isinstance(coursework, (int, float)):
-                 raise ValueError("Coursework must be a number.")
+                if not isinstance(academic_year, str) or not academic_year.strip():
+                    raise ValueError("Academic year must be valid text.")
 
-             if coursework < 0 or coursework > 100:
-                 raise ValueError("Coursework must be between 0 and 100.")
+            # Validate academic term if provided
+            if "academic_term" in update_data:
+                academic_term = update_data["academic_term"]
 
-         # Validate project if provided
-         if "project" in update_data:
-             project = update_data["project"]
+                if not isinstance(academic_term, str) or not academic_term.strip():
+                    raise ValueError("Academic term must be valid text.")
 
-             if isinstance(project, bool) or not isinstance(project, (int, float)):
-                 raise ValueError("Project must be a number.")
+            # Validate coursework if provided
+            if "coursework" in update_data:
+                coursework = update_data["coursework"]
 
-             if project < 0 or project > 100:
-                 raise ValueError("Project must be between 0 and 100.")
+                if isinstance(coursework, bool) or not isinstance(coursework, (int, float)):
+                    raise ValueError("Coursework must be a number.")
 
-         # Validate midterm if provided
-         if "midterm" in update_data:
-             midterm = update_data["midterm"]
+                if coursework < 0 or coursework > 100:
+                    raise ValueError("Coursework must be between 0 and 100.")
 
-             if isinstance(midterm, bool) or not isinstance(midterm, (int, float)):
-                 raise ValueError("Midterm must be a number.")
+            # Validate project if provided
+            if "project" in update_data:
+                project = update_data["project"]
 
-             if midterm < 0 or midterm > 100:
-                 raise ValueError("Midterm must be between 0 and 100.")
+                if isinstance(project, bool) or not isinstance(project, (int, float)):
+                    raise ValueError("Project must be a number.")
 
-         # Validate final exam if provided
-         if "final_exam" in update_data:
-             final_exam = update_data["final_exam"]
+                if project < 0 or project > 100:
+                    raise ValueError("Project must be between 0 and 100.")
 
-             if isinstance(final_exam, bool) or not isinstance(final_exam, (int, float)):
-                 raise ValueError("Final exam must be a number.")
+            # Validate midterm if provided
+            if "midterm" in update_data:
+                midterm = update_data["midterm"]
 
-             if final_exam < 0 or final_exam > 100:
-                 raise ValueError("Final exam must be between 0 and 100.")
+                if isinstance(midterm, bool) or not isinstance(midterm, (int, float)):
+                    raise ValueError("Midterm must be a number.")
 
-         # Check for invalid fields
-         allowed_fields = ["coursework", "project", "midterm", "final_exam"]
+                if midterm < 0 or midterm > 100:
+                    raise ValueError("Midterm must be between 0 and 100.")
 
-         for field in update_data:
-             if field not in allowed_fields:
-                 raise ValueError(f"Invalid field: {field}")
+            # Validate final exam if provided
+            if "final_exam" in update_data:
+                final_exam = update_data["final_exam"]
 
-         # Send updated information to the repository
-         updated = self.grade_repository.update_grade(grade_id, update_data)
+                if isinstance(final_exam, bool) or not isinstance(final_exam, (int, float)):
+                    raise ValueError("Final exam must be a number.")
 
-         if updated:
-             return "Grade updated successfully."
+                if final_exam < 0 or final_exam > 100:
+                    raise ValueError("Final exam must be between 0 and 100.")
 
-         return "Unable to update grade."
+            # Check for invalid fields
+            allowed_fields = [
+                "academic_year",
+                "academic_term",
+                "coursework",
+                "project",
+                "midterm",
+                "final_exam"
+            ]
 
-     except ValueError as err:
-         return str(err)
+            for field in update_data:
+                if field not in allowed_fields:
+                    raise ValueError(f"Invalid field: {field}")
+
+            # Send updated information to the repository
+            updated = self.grade_repository.update_grade(grade_id, update_data)
+
+            if updated:
+                return "Grade updated successfully."
+
+            return "Unable to update grade."
+
+        except ValueError as err:
+            return str(err)
+
      
         # Retrieves grades belonging to a student
     def get_grades_by_student(self, student_id):
@@ -191,3 +225,29 @@ class GradeService:
 
         except ValueError as err:
             return str(err)
+    def calculate_final_grade(self, grade):
+        coursework = grade["coursework"] * COURSEWORK_WEIGHT
+        project = grade["project"] * PROJECT_WEIGHT
+        midterm = grade["midterm"] * MIDTERM_WEIGHT
+        final_exam = grade["final_exam"] * FINAL_EXAM_WEIGHT
+
+        final_grade = coursework + project + midterm + final_exam
+
+        return round(final_grade, 2)
+    # Assigns a letter grade and performance level
+    def get_grade_classification(self, average):
+
+        if average >= 90:
+            return "A", "Outstanding"
+
+        elif average >= 80:
+            return "B", "Very Good"
+
+        elif average >= 70:
+            return "C", "Good"
+
+        elif average >= 60:
+            return "D", "Satisfactory"
+
+        else:
+            return "F", "Needs Improvement"
