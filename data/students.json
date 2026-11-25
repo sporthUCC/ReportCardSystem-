@@ -1,12 +1,22 @@
 [
     {
         "person_id": "STU001",
-        "first_name": "John",
-        "last_name": "Brown",
-        "email": "brownjohn@gmail.com",
-        "date_of_birth": "2010-08-01",
+        "first_name": "Saraijah",
+        "last_name": "Porth",
+        "email": "saraijah@gmail.com",
+        "date_of_birth": "2009-05-14",
+        "gender": "Female",
+        "grade_level": 10,
+        "parent_contact": "876-555-0123"
+    },
+    {
+        "person_id": "STU002",
+        "first_name": "Joshua",
+        "last_name": "Franklin",
+        "email": "joshua@gmail.com",
+        "date_of_birth": "2008-09-22",
         "gender": "Male",
-        "grade_level": 8,
-        "parent_contact": "8767835676"
+        "grade_level": 11,
+        "parent_contact": "876-555-0145"
     }
 ]

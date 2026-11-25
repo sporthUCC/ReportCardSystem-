@@ -157,6 +157,20 @@ class GradeService:
 
      except ValueError as err:
          return str(err)
+     
+        # Retrieves grades belonging to a student
+    def get_grades_by_student(self, student_id):
+        # Retrieve all grades
+        grades = self.grade_repository.get_all_grades()
+
+        # Store grades belonging to the student
+        student_grades = []
+
+        for grade in grades:
+            if grade["student_id"] == student_id:
+                student_grades.append(grade)
+
+        return student_grades
 
     # Deletes an existing grade
     def delete_grade(self, grade_id):

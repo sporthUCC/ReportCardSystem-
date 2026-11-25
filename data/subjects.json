@@ -3,5 +3,20 @@
         "subject_id": "SUB001",
         "subject_name": "Mathematics",
         "teacher_id": "TCH001"
+    },
+    {
+        "subject_id": "SUB002",
+        "subject_name": "English Language",
+        "teacher_id": "TCH002"
+    },
+    {
+        "subject_id": "SUB003",
+        "subject_name": "Information Technology",
+        "teacher_id": "TCH003"
+    },
+    {
+        "subject_id": "SUB004",
+        "subject_name": "Integrated Science",
+        "teacher_id": "TCH004"
     }
 ]

@@ -15,6 +15,8 @@ from services.subject_service import SubjectService
 
 from services.grade_service import GradeService
 
+
+from services.report_service import ReportService
 """
 
 result = student_service.add_student(
@@ -118,7 +120,6 @@ result = grade_service.add_grade(
     100
 )
 print(result)
-"""
 
 
 teacher_service = TeacherService()
@@ -143,4 +144,75 @@ result = grade_service.update_grade(
 print(result)
 
 
+student_service = StudentService()
 
+
+
+student_service.add_student(
+    "Saraijah",
+    "Porth",
+    "saraijah@gmail.com",
+    10,
+    gender="Female",
+    parent_contact="876-555-0123",
+    date_of_birth=date(2009, 5, 14)
+)
+
+student_service.add_student(
+    "Joshua",
+    "Franklin",
+    "joshua@gmail.com",
+    11,
+    gender="Male",
+    parent_contact="876-555-0145",
+    date_of_birth=date(2008, 9, 22)
+)
+
+teacher_service.add_teacher(
+    "Michael",
+    "Brown",
+    "michael.brown@gmail.com",
+    "Mathematics"
+)
+
+teacher_service.add_teacher(
+    "Danielle",
+    "Williams",
+    "danielle.williams@gmail.com",
+    "English Language"
+)
+
+teacher_service.add_teacher(
+    "Kevin",
+    "Johnson",
+    "kevin.johnson@gmail.com",
+    "Information Technology"
+)
+
+teacher_service.add_teacher(
+    "Natasha",
+    "Campbell",
+    "natasha.campbell@gmail.com",
+    "Integrated Science"
+)
+
+
+"""
+student_service = StudentService()
+teacher_service = TeacherService()
+subject_service = SubjectService(teacher_service)
+
+grade_service = GradeService(
+    student_service,
+    subject_service
+)
+
+report_service = ReportService(
+    student_service,
+    subject_service,
+    grade_service
+)
+
+
+print(report_service.prepare_report("STU001"))
+print(report_service.prepare_report("STU002"))
