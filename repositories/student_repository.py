@@ -11,18 +11,37 @@ class StudentRepository:
         return self.storage.load_data()
     
     def add_student(self, student):
-         students = self.storage.load_data()
-         # Check for duplicate ID first
-         for student_data in students:
+        students = self.storage.load_data()
+
+        # Check for duplicate ID first
+        for student_data in students:
             if student_data["person_id"] == student.get_person_id():
                 raise ValueError("Student ID already exists")
-         
-         student_data = student.get_person_details()
-         #adding the new student to the list 
-         students.append(student_data)
-         #saving students
-         self.storage.save_data(students)
-         
+
+        student_data = student.get_person_details()
+
+        # Convert the date object to a string before saving
+        if student_data["date_of_birth"] is not None:
+            student_data["date_of_birth"] = student_data["date_of_birth"].isoformat()
+
+        # Check for duplicate student information
+        for existing_student in students:
+            existing_details = existing_student.copy()
+            new_details = student_data.copy()
+
+            existing_details.pop("person_id")
+            new_details.pop("person_id")
+
+            if existing_details == new_details:
+                raise ValueError("Student is already registered.")
+
+        # Add the new student to the list
+        students.append(student_data)
+
+        # Save the students
+        self.storage.save_data(students)
+            
+            
     
     def get_student_by_id(self, student_id):
         students = self.storage.load_data()

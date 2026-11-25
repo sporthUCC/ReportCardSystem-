@@ -1,11 +1,10 @@
-[
-    {
-        "person_id": "T001",
-        "first_name": "John",
-        "last_name": "Doe",
-        "email": "john.doe@email.com",
-        "date_of_birth": null,
-        "gender": "Male",
+[ {
+        "person_id": "TCH001",
+        "first_name": "Rachelle",
+        "last_name": "Brown",
+        "email": "brownrachelle@gmail.com",
+        "date_of_birth": "1975-01-01",
+        "gender": "Female",
         "subject_taught": "Mathematics"
     }
 ]

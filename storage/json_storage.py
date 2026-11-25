@@ -40,4 +40,4 @@ class JSONStorage:
     def save_data(self, data):
         with open(self.file_path, "w") as file:
             #transforms python code into json format
-            json.dump(data, file, indent=4)
+            json.dump(data, file, indent=4, default=str)

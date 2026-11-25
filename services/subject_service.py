@@ -1,7 +1,7 @@
 from repositories.subject_repository import SubjectRepository
 from models.subject import Subject
 
-class SubjectServices:
+class SubjectService:
     def __init__(self, teacher_service):
         self.subject_repository = SubjectRepository()
         self.teacher_service = teacher_service
@@ -32,15 +32,19 @@ class SubjectServices:
          
     #loading all subjects
     def get_all_subjects(self):
-        subjects = self.subject_repository.get_all_subjects
+        subjects = self.subject_repository.get_all_subjects()
         #providing all the subjects
         return subjects
+
     def get_subject_by_id(self, subject_id):
-        #retrive the subjects's information
-        subject = self.subject_repository.get_subject_by_id(subject_id) 
-        
+        """Retrieves a subject using its ID."""
+
+        subject = self.subject_repository.get_subject_by_id(subject_id)
+
         if subject is None:
-            raise ValueError("Subject not found")
+            raise ValueError("Subject not found.")
+
+        return subject
 
     def add_subject(self, subject_name, teacher_id):
         try:

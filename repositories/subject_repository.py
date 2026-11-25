@@ -12,13 +12,17 @@ class SubjectRepository:
         return self.storage.load_data() 
     
     def get_subject_by_id(self, subject_id):
-        subjects = self.storage.load_data()
-
-        for subject in subjects:
-            if subject["subject_id"] == subject_id:
-                return subject
-
-        return None
+            subjects = self.storage.load_data()
+            #remove trailing spaces from the entered ID
+            subject_id = subject_id.strip()
+            for subject_data in subjects:
+                
+                #check whether the Subject ID matches 
+                if subject_data["subject_id"].upper() ==subject_id.upper() :
+                    return subject_data
+            
+            #return None if no matching subject is found
+            return None   
     
     #adding subjects to the student_file
     def add_subject(self, subject):
@@ -39,18 +43,7 @@ class SubjectRepository:
       # Save the updated subject records to the JSON file
        self.storage.save_data(subjects)
           
-    def get_subject_by_id(self, subject_id):
-        subjects = self.storage.load_data()
-        #remove trailing spaces from the entered ID
-        subject_id = subject_id.strip()
-        for subject_data in subjects:
-           
-            #check whether the Subject ID matches 
-            if subject_data["subject_id"].upper() ==subject_id.upper() :
-                return subject_data
-        
-        #return None if no matching subject is found
-        return None   
+   
        
    
     def update_subject(self, subject_id, update_data):

@@ -94,6 +94,8 @@ class StudentService:
 
             # Save student information
             self.student_repository.add_student(student)
+            
+            #print("Student DOB:", student.get_date_of_birth())
 
             return "Student added successfully."
 

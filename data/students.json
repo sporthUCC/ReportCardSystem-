@@ -1,12 +1,12 @@
 [
     {
-        "person_id": "STU002",
-        "first_name": "Kayla",
+        "person_id": "STU001",
+        "first_name": "John",
         "last_name": "Brown",
-        "email": "kayla@brown.com",
-        "date_of_birth": null,
+        "email": "brownjohn@gmail.com",
+        "date_of_birth": "2010-08-01",
         "gender": "Male",
-        "grade_level": 10,
-        "parent_contact": "8761234567"
+        "grade_level": 8,
+        "parent_contact": "8767835676"
     }
 ]

@@ -20,7 +20,22 @@ class TeacherRepository:
 
         #Convert the teacher object to a dictionary before saving
         teacher_data = teacher.get_person_details()
+        
+        #convert the date object to a string before saving 
+        
+        if teacher_data["date_of_birth"] is not None:
+                    teacher_data["date_of_birth"] = teacher_data["date_of_birth"].isoformat()
+                    
+        # Check for duplicate student information            
+        for existing_teacher in teachers:
+            existing_details = existing_teacher.copy()
+            new_details = teacher_data.copy()
 
+            existing_details.pop("person_id")
+            new_details.pop("person_id")
+
+            if existing_details == new_details:
+                raise ValueError("Teacher is already registered.")
         #Add the new teacher to the list and save it
         teachers.append(teacher_data)
 
