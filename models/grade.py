@@ -1,8 +1,10 @@
 class Grade:
-    def __init__(self, grade_id, student_id, subject_id, coursework, project, midterm, final_exam):
+    def __init__(self, grade_id, student_id, subject_id, academic_year, academic_term, coursework, project, midterm, final_exam):
         self.__grade_id = grade_id
         self.__student_id = student_id
         self.__subject_id = subject_id
+        self.__academic_year = academic_year
+        self.__academic_term = academic_term
         self.set_coursework(coursework)
         self.set_project(project)
         self.set_midterm(midterm)
@@ -20,6 +22,14 @@ class Grade:
     # Getter method to retrieve the subject ID.
     def get_subject_id(self):
         return self.__subject_id
+    
+    #Getter for academic Year
+    def get_academic_year(self):
+        return self.__academic_year
+    
+    #Getter for academic term
+    def get_academic_term(self):
+        return self.__academic_term
 
     # Getter method to retrieve the coursework score.
     def get_coursework(self):
@@ -95,6 +105,8 @@ class Grade:
             "grade_id": self.get_grade_id(),
             "student_id": self.get_student_id(),
             "subject_id": self.get_subject_id(),
+            "academic_year": self.get_academic_year(),
+            "academic_term": self.get_academic_term(),
             "coursework": self.get_coursework(),
             "project": self.get_project(),
             "midterm": self.get_midterm(),

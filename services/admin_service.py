@@ -6,7 +6,7 @@ class AdminService:
     """Handles the operations an administrator is allowed to perform."""
 
     def __init__(self, administrator, student_service,
-                 subject_service, grade_service):
+                 subject_service, grade_service, report_service):
         """Initializes the administrator and the required services."""
         self.__administrator = administrator
         self.student_service = student_service
@@ -82,4 +82,11 @@ class AdminService:
         self._require_admin()
         return self.grade_service.get_all_grades()
 
-#generate pdf
+    #generate pdf
+    """Prepares a student's report."""
+        # Student reports
+
+    def generate_student_report(self, student_id):
+        """Prepares a student's report."""
+        self._require_admin()
+        return self.report_service.prepare_report(student_id)

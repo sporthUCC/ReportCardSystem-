@@ -1,27 +1,17 @@
-#imprting course assement weight from the setting.py
-from config.settings import (
-    COURSEWORK_WEIGHT,
-    PROJECT_WEIGHT,
-    MIDTERM_WEIGHT,
-    FINAL_EXAM_WEIGHT
-)
-
-
 class ReportService:
-    "Handles collecting and preparing student report information"
-    
-    """the constructor receives three service objects. """
+    """Handles collecting and preparing student report information."""
+
     def __init__(self, student_service, subject_service, grade_service):
-          self.student_service = student_service
-          self.subject_service = subject_service
-          self.grade_service = grade_service
-          
-   # Retrieves student information, grades and subjects
-    def get_student_report_data(self, student_id):
+        self.student_service = student_service
+        self.subject_service = subject_service
+        self.grade_service = grade_service
+
+    # Retrieves student information, grades and subjects.
+    def get_student_report_data(self, student_id, academic_year, academic_term):
         """Retrieves student information, grades and associated subjects."""
 
         try:
-            # Validate student ID
+            # Validate student ID.
             if not isinstance(student_id, str):
                 raise ValueError("Student ID must be text.")
 
@@ -30,19 +20,26 @@ class ReportService:
             if not student_id:
                 raise ValueError("Student ID cannot be empty.")
 
-            # Retrieve student information
+            # Retrieve student information.
             student = self.student_service.get_student_by_id(student_id)
 
             if student is None:
                 raise ValueError("Student not found.")
 
-            # Retrieve student's grades
+            # Retrieve student's grades.
             grades = self.grade_service.get_grades_by_student(student_id)
 
-            if not grades:
-                raise ValueError("No grades found for this student.")
+            # Filter grades by academic year and term.
+            grades = [
+                grade for grade in grades
+                if grade["academic_year"] == academic_year
+                and grade["academic_term"] == academic_term
+            ]
 
-            # Retrieve subjects associated with the grades
+            if not grades:
+                raise ValueError("No grades found for this academic term.")
+
+            # Retrieve subjects associated with the grades.
             subjects = []
 
             for grade in grades:
@@ -63,43 +60,83 @@ class ReportService:
         except ValueError as err:
             return str(err)
 
-    def calculate_final_grade(self, grade):
-        """Calculates the final grade using the assessment weights."""
+    # Generate an academic comment based on the overall average.
+    def get_academic_comment(self, letter_grade):
+        """Returns an automatic academic comment based on the letter grade."""
 
-        coursework = grade["coursework"] * COURSEWORK_WEIGHT
-        project = grade["project"] * PROJECT_WEIGHT
-        midterm = grade["midterm"] * MIDTERM_WEIGHT
-        final_exam = grade["final_exam"] * FINAL_EXAM_WEIGHT
+        comments = {
+            "A": (
+                "The student is performing exceptionally well and "
+                "demonstrates an excellent understanding of the subjects. "
+                "Keep up the outstanding work!"
+            ),
+            "B": (
+                "The student is performing well and demonstrates a good "
+                "understanding of the subjects. Continue working hard "
+                "to achieve even better results."
+            ),
+            "C": (
+                "The student is performing adequately but could improve "
+                "in certain areas. Continued effort and practice are encouraged."
+            ),
+            "D": (
+                "The student may benefit from additional academic support "
+                "and guidance from parents and teaching staff."
+            ),
+            "F": (
+                "The student requires additional academic assistance "
+                "and consistent support to improve academic performance."
+            )
+        }
 
-        final_grade = coursework + project + midterm + final_exam
+        return comments.get(
+            letter_grade,
+            "Continue working hard and making progress in your studies."
+        )
 
-        return round(final_grade, 2)    
-
-    def prepare_report(self, student_id):
+    # Prepare the student's complete report information.
+    def prepare_report(self, student_id, academic_year, academic_term):
         """Prepares the complete student report information."""
 
-        # Retrieve student information, grades and subjects
-        report_data = self.get_student_report_data(student_id)
+        # Retrieve student information, grades and subjects.
+        report_data = self.get_student_report_data(
+            student_id, academic_year, academic_term
+        )
 
-        # Check whether report data was retrieved successfully
+        # Check whether report data was retrieved successfully.
         if isinstance(report_data, str):
             return report_data
 
-        # Extract student information and grade records
+        # Extract student information and grade records.
         student = report_data["student"]
         grades = report_data["grades"]
         subjects = report_data["subjects"]
 
-        # Create a list to store the final subject results
+        # Create a list to store the subject results.
         subject_results = []
 
-        # Process each grade record
+        # Process each grade record.
         for grade in grades:
 
-            # Calculate the final grade for the subject
-            final_grade = self.calculate_final_grade(grade)
+            # Calculate the term grade using coursework, project and midterm.
+            term_grade = (
+                (grade["coursework"] * 0.30)
+                + (grade["project"] * 0.20)
+                + (grade["midterm"] * 0.20)
+            ) / 0.70
 
-            # Find the matching subject information
+            # Retrieve the final exam score.
+            exam_grade = grade["final_exam"]
+
+            # Calculate the overall subject average.
+            average = self.grade_service.calculate_final_grade(grade)
+
+            # Get the letter grade and performance rating.
+            letter_grade, performance = (
+                self.grade_service.get_grade_classification(average)
+            )
+
+            # Find the matching subject information.
             subject = None
 
             for item in subjects:
@@ -110,18 +147,41 @@ class ReportService:
             if subject is None:
                 return "Subject information not found."
 
-            # Combine subject information and grade results
+            # Combine subject information and calculated results.
             subject_results.append({
                 "subject_name": subject["subject_name"],
-                "coursework": grade["coursework"],
-                "project": grade["project"],
-                "midterm": grade["midterm"],
-                "final_exam": grade["final_exam"],
-                "final_grade": final_grade
+                "term_grade": round(term_grade, 2),
+                "exam_grade": exam_grade,
+                "average": round(average, 2),
+                "letter_grade": letter_grade,
+                "performance_rating": performance
             })
 
-        # Return the complete report information
+        # Calculate the student's overall term average.
+        final_average = sum(
+            subject["average"] for subject in subject_results
+        ) / len(subject_results)
+
+        final_average = round(final_average, 2)
+
+        # Determine the overall letter grade.
+        overall_letter_grade, overall_performance = (
+            self.grade_service.get_grade_classification(final_average)
+        )
+
+        # Generate an academic comment based on the overall letter grade.
+        academic_comment = self.get_academic_comment(
+            overall_letter_grade
+        )
+
+        # Return the complete report information.
         return {
             "student": student,
-            "subjects": subject_results
+            "academic_year": academic_year,
+            "academic_term": academic_term,
+            "subjects": subject_results,
+            "final_average": final_average,
+            "overall_letter_grade": overall_letter_grade,
+            "overall_performance": overall_performance,
+            "academic_comment": academic_comment
         }
