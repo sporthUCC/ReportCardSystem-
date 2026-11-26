@@ -15,4 +15,5 @@ class AdminDashboard:
         self.root.geometry("1100x700")
         self.root.configure(bg=THEME["bg_root"])
     
-    def create_sidebar(self)
+        def create_sidebar(self):
+            pass 
