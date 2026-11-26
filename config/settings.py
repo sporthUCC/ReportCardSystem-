@@ -31,3 +31,12 @@ ADMIN_FILE = path.join(BASE_DIR, "data", "admins.json")
 
 LOGO_FILE = path.join(BASE_DIR, "assets", "school_logo.png")
 
+#Theme
+
+THEME = {
+    "bg_root": "#120B18",
+    "bg_surface": "#1D1226",
+    "accent_pink": "#FF1E8A",
+    "text_main": "#F8F2FC",
+ 
+}
