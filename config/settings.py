@@ -20,6 +20,7 @@ WINDOW_HEIGHT = 700
 
 #File paths
 
+#This helps to identify where the current setting.py is localted
 BASE_DIR = path.dirname(path.dirname(path.abspath(__file__)))
 
 STUDENT_FILE = path.join(BASE_DIR, "data", "students.json")
@@ -29,3 +30,4 @@ GRADE_FILE = path.join(BASE_DIR, "data", "grades.json")
 ADMIN_FILE = path.join(BASE_DIR, "data", "admins.json")
 
 LOGO_FILE = path.join(BASE_DIR, "assets", "school_logo.png")
+

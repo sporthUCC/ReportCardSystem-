@@ -1,12 +1,11 @@
 
 class Login:
 
-    def __init__(self, username, password, role):
+    def __init__(self, username, password):
         # Store the user's login credentials and role.
         self.__username = username
         self.__password = password
-        self.__role = role
-
+  
     # Return the user's username.
     def get_username(self):
         return self.__username
