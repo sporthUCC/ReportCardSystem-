@@ -18,5 +18,55 @@
         "gender": "Male",
         "grade_level": 11,
         "parent_contact": "876-555-0145"
+    },
+    {
+        "person_id": "STU003",
+        "first_name": "Jamari",
+        "last_name": "Franklin",
+        "email": "jamari@gmail.com",
+        "date_of_birth": null,
+        "gender": null,
+        "grade_level": 10,
+        "parent_contact": null
+    },
+    {
+        "person_id": "STU004",
+        "first_name": "Brandon",
+        "last_name": "Myers",
+        "email": "myers@gmail.com",
+        "date_of_birth": null,
+        "gender": null,
+        "grade_level": 8,
+        "parent_contact": null
+    },
+    {
+        "person_id": "STU005",
+        "first_name": "john",
+        "last_name": "Roads",
+        "email": "road@gmail.com",
+        "date_of_birth": null,
+        "gender": null,
+        "grade_level": 9,
+        "parent_contact": null
+    },
+    {
+        "person_id": "STU006",
+        "first_name": "Kelly",
+        "last_name": "White",
+        "email": "Kellywhite@gmail.com",
+        "date_of_birth": null,
+        "gender": null,
+        "grade_level": 8,
+        "parent_contact": null
+    },
+    {
+        "person_id": "STU007",
+        "first_name": "TY",
+        "last_name": "TY",
+        "email": null,
+        "date_of_birth": null,
+        "gender": null,
+        "grade_level": 7,
+        "parent_contact": null
     }
 ]

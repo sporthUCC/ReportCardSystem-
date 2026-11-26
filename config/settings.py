@@ -29,6 +29,7 @@ GRADE_FILE = path.join(BASE_DIR, "data", "grades.json")
 ADMIN_FILE = path.join(BASE_DIR, "data", "admins.json")
 
 LOGO_FILE = path.join(BASE_DIR, "assets", "school_logo.png")
+MONSTER_HIGH_BACKGROUND =path.join(BASE_DIR, "assets", "monster_high_background.jpeg")
 
 #Theme
 
@@ -37,5 +38,6 @@ THEME = {
     "bg_surface": "#1D1226",
     "accent_pink": "#FF1E8A",
     "text_main": "#F8F2FC",
+    "text_purple": "#BFA8D4"
  
 }
