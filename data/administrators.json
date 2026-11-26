@@ -7,15 +7,6 @@
         "date_of_birth": null,
         "gender": "Female",
         "access_level": "Full Access"
-    },
-    {
-        "person_id": "A002",
-        "first_name": "Jane",
-        "last_name": "Smith",
-        "email": "jane.smith@email.com",
-        "date_of_birth": null,
-        "gender": "Female",
-        "access_level": "Limited Access"
     }
 ]
 

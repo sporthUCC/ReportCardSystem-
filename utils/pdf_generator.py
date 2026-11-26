@@ -424,8 +424,8 @@ def _build_summary(summary, styles):
         text += f" &nbsp;&nbsp; <b>GPA (4.0 scale):</b> {summary['overall_gpa']:.2f}"
     return [Spacer(1, 8), Paragraph(text, styles["body"])]
 
-            # Move to the next row.
-            self.ln()
+        # Move to the next row.
+        self.ln()
 
     # Add the student's automated academic comment inside the letterhead's built-in box.
     def add_academic_comment(self, academic_comment):

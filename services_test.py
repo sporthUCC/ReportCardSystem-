@@ -1,3 +1,4 @@
+"""
 
 from services.student_service import StudentService
 from services.teacher_service import TeacherService
@@ -34,3 +35,33 @@ if isinstance(report, str):
     print(report)
 else:
     print(pdf_generator.generate_report(report))
+"""
+
+
+from services.auth_service import AuthService
+
+auth = AuthService()
+
+# Test Administrator login
+role, message = auth.login("admin", "@dm!n")
+print(role, message)
+
+# Test Teacher login
+role, message = auth.login("teacher", "t3@ch3r")
+print(role, message)
+
+# Test incorrect password
+role, message = auth.login("admin", "wrong123")
+print(role, message)
+
+# Test incorrect username
+role, message = auth.login("unknown", "12345")
+print(role, message)
+
+# Test empty username
+role, message = auth.login("", "@dm!n")
+print(role, message)
+
+# Test empty password
+role, message = auth.login("admin", "")
+print(role, message)
