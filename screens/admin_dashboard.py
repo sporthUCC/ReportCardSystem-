@@ -588,8 +588,8 @@ class AdminDashboard:
         right.pack(side="right", anchor="ne")
 
         admin_name = self._person_name(
-            {"first_name": self.administrator.first_name,
-             "last_name": self.administrator.last_name}
+            {"first_name": self.administrator.get_first_name(),
+             "last_name": self.administrator.get_last_name()}
         )
         tk.Label(
             right, text=f"Admin: {admin_name}", bg=MH_THEME["bg_card"],

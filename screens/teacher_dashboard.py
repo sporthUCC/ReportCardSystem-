@@ -13,7 +13,7 @@ from datetime import datetime
 
 from PIL import Image, ImageTk
 
-# Import the school theme and logo
+# Import the school theme and logo so the dashboard matches the rest of the app
 try:
     from config.settings import THEME as _CONFIG_THEME, LOGO_FILE
 except ImportError:
@@ -36,7 +36,11 @@ MH_THEME = {
 
 
 class RoundedCard(tk.Canvas):
-    """Creates a rounded card with a frame inside it."""
+    """
+    Tkinter does not give us rounded corners on regular frames out of the box,
+    so I built this custom Canvas widget that draws a smooth rounded rectangle
+    and places a normal Frame (self.inner) inside it for all the widgets.
+    """
 
     def __init__(
         self,
@@ -48,6 +52,7 @@ class RoundedCard(tk.Canvas):
         padding=18,
         **kwargs,
     ):
+        # Match the canvas outer background to whatever container holds it so corners look transparent
         parent_bg = kwargs.pop("bg", parent.cget("bg"))
 
         super().__init__(
@@ -64,6 +69,7 @@ class RoundedCard(tk.Canvas):
         self.border_width = border_width
         self.padding = padding
 
+        # Every label, button, and table inside the card gets packed into self.inner
         self.inner = tk.Frame(self, bg=self.bg_color)
 
         self._window_id = self.create_window(
@@ -73,9 +79,14 @@ class RoundedCard(tk.Canvas):
             anchor="nw",
         )
 
+        # Redraw the rounded shape whenever the card resizes so it never looks stretched
         self.bind("<Configure>", self._on_resize)
 
     def _round_rect_points(self, x1, y1, x2, y2, r):
+        """
+        Calculates the corner coordinates needed for create_polygon(..., smooth=True)
+        to curve each corner smoothly without overlapping when the card is small.
+        """
         r = max(2, min(r, (x2 - x1) // 2, (y2 - y1) // 2))
 
         return [
@@ -94,11 +105,16 @@ class RoundedCard(tk.Canvas):
         ]
 
     def _on_resize(self, event):
+        """
+        Clears the old card background, redraws the rounded border at the new size,
+        sends it behind the widgets, and resizes self.inner to fit inside the padding.
+        """
         width = max(event.width, 40)
         height = max(event.height, 40)
 
         self.delete("card_shape")
 
+        # Pull the outline in by half the border width so the border doesn't get clipped
         inset = self.border_width / 2
 
         points = self._round_rect_points(
@@ -118,6 +134,7 @@ class RoundedCard(tk.Canvas):
             tags="card_shape",
         )
 
+        # Keep the drawn card shape underneath the embedded inner frame
         self.tag_lower("card_shape")
 
         inner_width = max(width - (self.padding * 2), 20)
@@ -131,7 +148,10 @@ class RoundedCard(tk.Canvas):
 
 
 def draw_corner_web(canvas, x0, y0, size=64, flip_x=False):
-    """Draws a small spiderweb decoration."""
+    """
+    Draws a small Monster High spiderweb in the bottom corners of the sidebar
+    using radial lines and curved cross-strands.
+    """
 
     sx = -1 if flip_x else 1
     cx = x0 + (size if flip_x else 0)
@@ -207,7 +227,7 @@ class TeacherDashboard:
         self.on_logout = on_logout
         self.on_open_grades = on_open_grades
 
-        # These lists and lookups are filled using the services
+        # Lists and lookup dictionaries populated from the backend services
         self.students = []
         self.subjects = []
         self.grades_records = []
@@ -229,14 +249,20 @@ class TeacherDashboard:
     # ---------------------------------------------------------
 
     def _load_dashboard_data(self):
-        """Loads the latest records from the backend services."""
+        """
+        Pulls all students, subjects, and grades from the services and filters
+        subjects and grades down to just what the logged-in teacher actually teaches.
+        """
 
         try:
             students = self.student_service.get_all_students() or []
             subjects = self.subject_service.get_all_subjects() or []
             grades = self.grade_service.get_all_grades() or []
 
-            # a teacher only sees the subjects they teach and the grades for them
+            """
+            If a specific teacher logged in, filter out other teachers' subjects
+            and only keep grade records that belong to this teacher's subjects.
+            """
             if self.teacher_id:
                 subjects = [
                     s for s in subjects
@@ -264,7 +290,10 @@ class TeacherDashboard:
             self.subjects = []
             self.grades_records = []
 
-        # quick lookups so IDs can be turned into names and records
+        """
+        Build dictionary lookups keyed by ID so when we loop through grades later
+        we can grab a student's name or subject title immediately without re-querying.
+        """
         self.student_lookup = {
             s.get("person_id"): s for s in self.students
         }
@@ -276,8 +305,7 @@ class TeacherDashboard:
         }
 
     def _refresh_dashboard_data(self):
-        """Refreshes the records before displaying a section."""
-
+        # Reload the latest data from disk/services before rendering a section
         self._load_dashboard_data()
 
     # ---------------------------------------------------------
@@ -285,8 +313,7 @@ class TeacherDashboard:
     # ---------------------------------------------------------
 
     def _student_name(self, student_id):
-        """Turns a student ID into a full name."""
-
+        # Convert a student ID into their full name, or fall back to the ID itself
         student = self.student_lookup.get(student_id)
 
         if not student:
@@ -298,8 +325,7 @@ class TeacherDashboard:
         ).strip()
 
     def _subject_name(self, subject_id):
-        """Turns a subject ID into a subject name."""
-
+        # Convert a subject ID into its subject name, or fall back to the ID itself
         subject = self.subject_lookup.get(subject_id)
 
         if not subject:
@@ -308,16 +334,14 @@ class TeacherDashboard:
         return subject.get("subject_name", subject_id)
 
     def _final_grade(self, grade):
-        """Calculates the weighted final grade using GradeService."""
-
+        # Ask GradeService to compute the weighted final percentage for one grade record
         try:
             return self.grade_service.calculate_final_grade(grade)
         except Exception:
             return None
 
     def _letter_grade(self, final_grade):
-        """Gets the letter grade using GradeService."""
-
+        # Ask GradeService to map a numeric final score to a letter grade (A-F)
         if final_grade is None:
             return ""
 
@@ -330,7 +354,10 @@ class TeacherDashboard:
             return ""
 
     def _student_average(self, student_id):
-        """Averages the weighted final grades of one student, or None."""
+        """
+        Loops through all visible grades for a student, calculates each subject's
+        weighted final grade, and returns the overall average (or None if ungraded).
+        """
 
         finals = []
 
@@ -347,9 +374,11 @@ class TeacherDashboard:
         return round(sum(finals) / len(finals), 2)
 
     def _default_year_and_term(self):
-        """Picks a starting academic year and term for the grade form."""
+        """
+        Picks a starting academic year and term for the grade form by reusing
+        the last saved grade's period, or falling back to the current school year.
+        """
 
-        # reuse the most recent saved grade if there is one
         if self.grades_records:
             last = self.grades_records[-1]
             year = last.get("academic_year")
@@ -360,6 +389,7 @@ class TeacherDashboard:
 
         today = datetime.now()
 
+        # School years start in August, so Aug-Dec belongs to the new year
         if today.month >= 8:
             year = f"{today.year}-{today.year + 1}"
         else:
@@ -372,6 +402,7 @@ class TeacherDashboard:
     # ---------------------------------------------------------
 
     def _configure_styles(self):
+        # Apply custom dark Monster High colors to ttk Treeview tables and Comboboxes
         style = ttk.Style()
 
         try:
@@ -416,6 +447,10 @@ class TeacherDashboard:
     # ---------------------------------------------------------
 
     def _build_layout(self):
+        """
+        Splits the window into a fixed-width sidebar on the left and a main
+        content area on the right where each section swaps in and out.
+        """
 
         self.root_frame = tk.Frame(
             self.parent,
@@ -433,6 +468,7 @@ class TeacherDashboard:
         )
 
         self.sidebar.pack(side="left", fill="y")
+        # Prevent the sidebar from shrinking to fit its children
         self.sidebar.pack_propagate(False)
 
         self.main_area = tk.Frame(
@@ -461,6 +497,7 @@ class TeacherDashboard:
         )
 
     def _build_sidebar(self):
+        # Builds the left navigation bar with the school logo, tabs, and logout button
 
         brand_box = tk.Frame(
             self.sidebar,
@@ -471,7 +508,7 @@ class TeacherDashboard:
 
         brand_box.pack(fill="x")
 
-        # Try loading the school logo
+        # Load the school logo image if it exists; otherwise fall back to text
         logo_loaded = False
 
         try:
@@ -544,7 +581,7 @@ class TeacherDashboard:
             btn.pack(fill="x", padx=10, pady=4)
             self.nav_buttons[key] = btn
 
-        # Add the spiderweb decoration
+        # Decorative spiderwebs anchored to the bottom of the sidebar
         web_canvas = tk.Canvas(
             self.sidebar,
             bg=MH_THEME["bg_sidebar"],
@@ -582,6 +619,7 @@ class TeacherDashboard:
         )
 
     def _highlight_nav(self, active_key):
+        # Highlights the active sidebar tab in pink and resets the other tabs
 
         self.active_tab = active_key
 
@@ -600,11 +638,15 @@ class TeacherDashboard:
                 )
 
     def _clear_content(self):
-
+        # Destroy all widgets inside content_host before drawing the next view
         for widget in self.content_host.winfo_children():
             widget.destroy()
 
     def _handle_logout(self):
+        """
+        Confirms logout with the teacher, then either triggers the parent callback
+        or closes this window and reopens the LoginScreen directly.
+        """
         if not messagebox.askyesno("Logout", "Are you sure you want to log out?"):
             return
 
@@ -622,12 +664,14 @@ class TeacherDashboard:
             app.mainloop()
 
     def show_section(self, section_key):
-        """Changes between the dashboard sections."""
+        """
+        Switches between Dashboard, Student Records, and Grade Management,
+        reloading the latest data from the services each time so changes show right away.
+        """
 
-        # Reload the records when changing sections
         self._refresh_dashboard_data()
 
-        # an outside grade screen can still be plugged in through on_open_grades
+        # Allow an external grade screen callback to take over if one was passed in
         if section_key == "grades" and callable(self.on_open_grades):
             self.on_open_grades()
             return
@@ -649,6 +693,7 @@ class TeacherDashboard:
     # ---------------------------------------------------------
 
     def _render_dashboard_home(self):
+        # Draws the home overview with summary stat cards and quick-navigation cards
 
         self._build_header(
             title="Welcome Back, Teacher!",
@@ -736,7 +781,7 @@ class TeacherDashboard:
                 anchor="w",
             ).pack(fill="x", pady=(4, 0))
 
-        # Navigation cards
+        # Navigation cards that jump directly to Student Records or Grade Management
         sections_row = tk.Frame(
             self.content_host,
             bg=MH_THEME["bg_black"],
@@ -775,6 +820,7 @@ class TeacherDashboard:
         )
 
     def _build_header(self, title, subtitle):
+        # Draws the top banner card showing the page title, teacher name, and today's date
 
         header_card = RoundedCard(
             self.content_host,
@@ -916,7 +962,10 @@ class TeacherDashboard:
     # ---------------------------------------------------------
 
     def _render_student_records(self):
-        """Displays student records from StudentService."""
+        """
+        Builds the Student Records screen with live search filtering and a
+        read-only table of students (double-clicking opens the student's profile).
+        """
 
         self._build_header(
             title="Student Records",
@@ -957,6 +1006,7 @@ class TeacherDashboard:
 
         search_entry.pack(side="left", ipady=5, padx=(0, 10))
 
+        # Re-filter the student table on every keystroke
         search_entry.bind(
             "<KeyRelease>",
             lambda _event: self._populate_student_table(),
@@ -998,7 +1048,7 @@ class TeacherDashboard:
 
         table_card.pack(fill="both", expand=True)
 
-        # These columns match the actual Student data, plus the average grade
+        # Columns match the Student model attributes plus the calculated average
         columns = (
             "id",
             "name",
@@ -1067,12 +1117,12 @@ class TeacherDashboard:
         self._populate_student_table()
 
     def _reset_student_search(self):
-
+        # Clear the search box and restore the full list of students
         self.student_search_var.set("")
         self._populate_student_table()
 
     def _populate_student_table(self):
-        """Displays students and filters the records when searching."""
+        # Clears and refills the student table using whatever is typed in the search box
 
         for row in self.student_tree.get_children():
             self.student_tree.delete(row)
@@ -1081,7 +1131,7 @@ class TeacherDashboard:
 
         for student in self.students:
 
-            # Use person_id because that is the ID field in Student
+            # Student records store their ID under person_id
             student_id = student.get("person_id", "")
 
             first_name = student.get("first_name", "")
@@ -1103,6 +1153,7 @@ class TeacherDashboard:
 
             if not query or query in search_text:
 
+                # Store student_id as the row iid so selecting a row gives us the ID directly
                 self.student_tree.insert(
                     "",
                     "end",
@@ -1118,7 +1169,7 @@ class TeacherDashboard:
                 )
 
     def _view_selected_student(self):
-        """Opens the selected student's record inside the dashboard (no popup window)."""
+        # Opens the selected student's profile inside the dashboard instead of a popup window
 
         selected = self.student_tree.selection()
 
@@ -1132,9 +1183,11 @@ class TeacherDashboard:
         self._render_student_detail(selected[0])
 
     def _render_student_detail(self, student_id):
-        """Shows one student's information and grades on the dashboard itself."""
+        """
+        Replaces the student list with a two-column profile view showing the
+        student's personal details on the left and their grades by subject on the right.
+        """
 
-        # Retrieve the latest student record using StudentService
         try:
             student = self.student_service.get_student_by_id(student_id)
 
@@ -1152,11 +1205,10 @@ class TeacherDashboard:
             )
             return
 
-        # Retrieve this student's grades using GradeService
         try:
             student_grades = self.grade_service.get_grades_by_student(student_id)
 
-            # a teacher only sees grades for the subjects they teach
+            # Restrict visible grades to subjects taught by the logged-in teacher
             if self.teacher_id:
                 student_grades = [
                     g for g in student_grades
@@ -1166,7 +1218,6 @@ class TeacherDashboard:
         except Exception:
             student_grades = []
 
-        # Work out the student's age using StudentService
         try:
             age = self.student_service.calculate_student_age(student_id)
         except Exception:
@@ -1177,7 +1228,6 @@ class TeacherDashboard:
             f"{student.get('last_name', '')}"
         ).strip()
 
-        # swap the student table for the detail screen
         self._highlight_nav("students")
         self._clear_content()
 
@@ -1186,7 +1236,7 @@ class TeacherDashboard:
             subtitle="Read-only student record.",
         )
 
-        # back button returns to the student table
+        # Back button to return from the student's profile to the full student table
         back_row = tk.Frame(self.content_host, bg=MH_THEME["bg_black"])
         back_row.pack(fill="x", pady=(0, 12))
 
@@ -1208,7 +1258,7 @@ class TeacherDashboard:
         body = tk.Frame(self.content_host, bg=MH_THEME["bg_black"])
         body.pack(fill="both", expand=True)
 
-        # left card: the student's information
+        # Left card: personal details
         info_card = RoundedCard(
             body,
             bg_color=MH_THEME["bg_card"],
@@ -1260,7 +1310,7 @@ class TeacherDashboard:
                 wraplength=250,
             ).pack(fill="x")
 
-        # right card: grades by subject
+        # Right card: subject grades and overall average
         grades_card = RoundedCard(
             body,
             bg_color=MH_THEME["bg_card"],
@@ -1279,7 +1329,7 @@ class TeacherDashboard:
             anchor="w",
         ).pack(fill="x", pady=(0, 8))
 
-        # the overall average sits at the bottom of the card
+        # Pack the summary label at the bottom first so the table fills the remaining space above it
         overall_label = tk.Label(
             grades_card.inner,
             text="",
@@ -1360,7 +1410,11 @@ class TeacherDashboard:
     # ---------------------------------------------------------
 
     def _render_grade_management(self):
-        """Lets the teacher pick a student and subject, then enter or update grades."""
+        """
+        Builds the Grade Management screen: a top form to pick a student, subject,
+        year, term, and enter the four assessment scores, plus a live table of
+        saved grades below that loads into the form when clicked.
+        """
 
         self._build_header(
             title="Grade Management",
@@ -1377,6 +1431,7 @@ class TeacherDashboard:
 
         form_card.pack(fill="x", pady=(0, 14))
 
+        # Format dropdown items as "ID - Name" so we can split on " - " to extract the ID
         student_choices = [
             f"{s.get('person_id')} - {self._student_name(s.get('person_id'))}"
             for s in self.students
@@ -1389,7 +1444,7 @@ class TeacherDashboard:
 
         default_year, default_term = self._default_year_and_term()
 
-        # Row 1: student and subject
+        # Row 1: student and subject dropdowns
         top_grid = tk.Frame(form_card.inner, bg=MH_THEME["bg_card"])
         top_grid.pack(fill="x", pady=(0, 12))
         top_grid.columnconfigure((0, 1), weight=1, uniform="sel")
@@ -1440,12 +1495,11 @@ class TeacherDashboard:
         if subject_choices:
             self.grade_subject_cb.current(0)
 
-        # Row 2: academic year, term, and the four assessment scores
+        # Row 2: academic year, term, and the four assessment score boxes
         scores_grid = tk.Frame(form_card.inner, bg=MH_THEME["bg_card"])
         scores_grid.pack(fill="x", pady=(0, 14))
         scores_grid.columnconfigure((0, 1, 2, 3, 4, 5), weight=1, uniform="scores")
 
-        # academic year
         year_box = tk.Frame(scores_grid, bg=MH_THEME["bg_card"])
         year_box.grid(row=0, column=0, padx=(0, 6), sticky="ew")
 
@@ -1471,7 +1525,7 @@ class TeacherDashboard:
         )
         year_entry.pack(fill="x", ipady=5, pady=(4, 0))
 
-        # academic term (can be typed if the school uses different names)
+        # Left editable (no state="readonly") in case custom term names are used
         term_box = tk.Frame(scores_grid, bg=MH_THEME["bg_card"])
         term_box.grid(row=0, column=1, padx=6, sticky="ew")
 
@@ -1492,7 +1546,7 @@ class TeacherDashboard:
         self.term_cb.set(default_term)
         self.term_cb.pack(fill="x", ipady=4, pady=(4, 0))
 
-        # the four assessment scores
+        # Create the four score inputs dynamically and keep their StringVars in self.score_vars
         self.score_vars = {}
 
         fields = [
@@ -1534,7 +1588,11 @@ class TeacherDashboard:
                 relief="flat",
             ).pack(fill="x", ipady=5, pady=(4, 0))
 
-        # reload saved scores whenever the student, subject, year, or term changes
+        """
+        Whenever the teacher switches student, subject, year, or term,
+        automatically check if a grade already exists for that combination
+        and pre-fill the four score boxes so they can see or update it.
+        """
         self.grade_student_cb.bind(
             "<<ComboboxSelected>>",
             lambda _e: self._load_existing_scores(),
@@ -1589,7 +1647,7 @@ class TeacherDashboard:
             cursor="hand2",
         ).pack(side="left", padx=(10, 0))
 
-        # Recorded grades table
+        # Recorded grades table at the bottom of the screen
         list_card = RoundedCard(
             self.content_host,
             bg_color=MH_THEME["bg_card"],
@@ -1654,17 +1712,20 @@ class TeacherDashboard:
         self._refresh_grades_table()
 
     def _selected_student_id(self):
-
+        # Extract the student ID prefix from "S001 - Draculaura"
         raw = self.grade_student_cb.get()
         return raw.split(" - ", 1)[0].strip() if " - " in raw else ""
 
     def _selected_subject_id(self):
-
+        # Extract the subject ID prefix from "SUB001 - Biteology"
         raw = self.grade_subject_cb.get()
         return raw.split(" - ", 1)[0].strip() if " - " in raw else ""
 
     def _find_existing_grade(self):
-        """Finds the saved grade for the chosen student, subject, year, and term."""
+        """
+        Searches self.grades_records for a record matching the currently selected
+        student, subject, academic year, and term so we know whether to update or add.
+        """
 
         student_id = self._selected_student_id()
         subject_id = self._selected_subject_id()
@@ -1683,12 +1744,12 @@ class TeacherDashboard:
         return None
 
     def _clear_score_inputs(self):
-
+        # Empty all four assessment input boxes
         for var in self.score_vars.values():
             var.set("")
 
     def _load_existing_scores(self):
-        """Fills the score boxes if a grade is already saved for the current choices."""
+        # Populate the score boxes if a grade already exists for this selection; otherwise clear them
 
         match = self._find_existing_grade()
 
@@ -1699,7 +1760,11 @@ class TeacherDashboard:
             self._clear_score_inputs()
 
     def _save_grades(self):
-        """Adds a new grade or updates the saved one using GradeService."""
+        """
+        Validates all inputs (rejecting blanks, letters, negatives, and scores > 100),
+        then calls update_grade if a record already exists for that student/subject/term
+        or add_grade if it is a new entry.
+        """
 
         student_id = self._selected_student_id()
         subject_id = self._selected_subject_id()
@@ -1720,7 +1785,6 @@ class TeacherDashboard:
             )
             return
 
-        # read and check the four scores
         scores = {}
 
         labels = {
@@ -1734,6 +1798,7 @@ class TeacherDashboard:
 
             raw_value = self.score_vars[key].get().strip()
 
+            # Reject empty strings or letters by requiring conversion to float
             try:
                 number = float(raw_value)
             except ValueError:
@@ -1743,6 +1808,7 @@ class TeacherDashboard:
                 )
                 return
 
+            # Reject negative numbers or scores above 100
             if number < 0 or number > 100:
                 messagebox.showerror(
                     "Out of Range",
@@ -1750,6 +1816,7 @@ class TeacherDashboard:
                 )
                 return
 
+            # Store whole numbers as ints (e.g. 85) and decimals rounded to 1 place (e.g. 85.5)
             scores[key] = round(number, 1) if number % 1 else int(number)
 
         existing = self._find_existing_grade()
@@ -1778,7 +1845,7 @@ class TeacherDashboard:
             messagebox.showerror("Unable to Save", result)
             return
 
-        # reload the saved records so the table shows what is really stored
+        # Reload from services so the table reflects the saved data and recalculated averages
         self._refresh_dashboard_data()
         self._refresh_grades_table()
 
@@ -1789,7 +1856,7 @@ class TeacherDashboard:
         )
 
     def _refresh_grades_table(self):
-        """Fills the grades table from the saved grade records."""
+        # Clears and repopulates the bottom grades Treeview from self.grades_records
 
         for row in self.grades_tree.get_children():
             self.grades_tree.delete(row)
@@ -1817,21 +1884,36 @@ class TeacherDashboard:
             )
 
     def _on_grade_row_selected(self, _event):
-        """Loads a clicked table row back into the form so it can be edited."""
+        """
+        When the teacher clicks a row in the grades table, load that record's
+        student, subject, year, term, and scores back into the form above for editing.
+        """
 
+        """
+        Treeview.selection() returns a tuple of currently highlighted row IDs.
+        When the table gets cleared and rebuilt after saving, this event still fires
+        with an empty selection, so we check first to avoid an IndexError.
+        """
         selected = self.grades_tree.selection()
 
         if not selected:
             return
 
+        """
+        When we inserted rows in _refresh_grades_table, we set each row's iid to its
+        grade_id, so selected[0] lets us grab the exact grade dictionary in one step.
+        """
         grade = self.grade_lookup.get(selected[0])
 
+        # Stop safely if the clicked row's grade_id isn't found in the lookup dictionary
         if not grade:
             return
 
+        # Pull out the raw IDs so we can rebuild the "ID - Name" strings the dropdowns expect
         student_id = grade.get("student_id")
         subject_id = grade.get("subject_id")
 
+        # Set the Student and Subject comboboxes to match the clicked row
         self.grade_student_cb.set(
             f"{student_id} - {self._student_name(student_id)}"
         )
@@ -1840,42 +1922,13 @@ class TeacherDashboard:
             f"{subject_id} - {self._subject_name(subject_id)}"
         )
 
+        # Fill the academic year and term fields (wrapped in str() in case a year is stored as an int)
         self.year_var.set(str(grade.get("academic_year", "")))
         self.term_cb.set(str(grade.get("academic_term", "")))
 
+        """
+        Loop through coursework, project, midterm, and final_exam and copy each
+        saved score into its matching StringVar so the teacher can edit and re-save.
+        """
         for key in self.score_vars:
             self.score_vars[key].set(str(grade.get(key, "")))
-
-
-# ---------------------------------------------------------
-# STANDALONE TESTING
-# ---------------------------------------------------------
-
-if __name__ == "__main__":
-
-    from services.student_service import StudentService
-    from services.teacher_service import TeacherService
-    from services.subject_service import SubjectService
-    from services.grade_service import GradeService
-
-    root = tk.Tk()
-
-    root.title("Monster High Academy | Teacher Dashboard")
-    root.geometry("1180x740")
-    root.minsize(980, 640)
-    root.configure(bg=MH_THEME["bg_black"])
-
-    # Create the services and connect their dependencies
-    student_service = StudentService()
-    teacher_service = TeacherService()
-    subject_service = SubjectService(teacher_service)
-    grade_service = GradeService(student_service, subject_service)
-
-    app = TeacherDashboard(
-        root,
-        student_service=student_service,
-        subject_service=subject_service,
-        grade_service=grade_service,
-    )
-
-    root.mainloop()
