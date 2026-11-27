@@ -1,4 +1,5 @@
 import tkinter as tk
+import traceback
 from pathlib import Path
 
 SCHOOL_NAME = "Monster High School"
@@ -53,12 +54,14 @@ def make_logo(parent, bg):
 
 
 class LoginScreen(tk.Tk):
-    """Split-screen login. Sends the details to AuthService, then opens the
-    admin or teacher dashboard depending on the role it gets back."""
+    """Split-screen login. AuthService says who the user is (Administrator or
+    Teacher), then the matching dashboard opens in a new window. Logging out
+    of the dashboard brings this login screen back."""
 
     def __init__(self, auth_service):
         super().__init__()
         self.auth_service = auth_service
+        self.quitting = False  # True when the whole app is being closed
 
         self.title(f"{SCHOOL_NAME} - Login")
         self.geometry(f"{LEFT_W + 420}x{HEIGHT}")
@@ -157,18 +160,80 @@ class LoginScreen(tk.Tk):
             self.password_entry.delete(0, tk.END)
             return
 
-        # Pick the dashboard that matches the role
+        self.open_dashboard(role)
+
+    def open_dashboard(self, role):
+        """Opens the admin or teacher dashboard in its own window."""
+        window = tk.Toplevel(self)
+        window.withdraw()  # stay hidden until the dashboard is fully built
+        window.configure(bg=THEME["bg_root"])
+
         try:
             if role == "Administrator":
-                from screens.admin_dashboard import AdminDashboard as Dashboard
+                self.build_admin_dashboard(window)
+            elif role == "Teacher":
+                self.build_teacher_dashboard(window)
             else:
-                from screens.teacher_dashboard import TeacherDashboard as Dashboard
-        except ImportError:
-            self.message.config(text=f"Could not open the {role} dashboard.")
+                raise ValueError(f"Unknown role: {role}")
+        except Exception as error:
+            # Show the real problem in the terminal and a short note on the login screen
+            traceback.print_exc()
+            window.destroy()
+            self.message.config(text=f"Could not open the {role} dashboard: {error}")
             return
 
+        window.deiconify()
+        self.withdraw()  # hide the login screen while the dashboard is open
+
+        # Closing the dashboard with the X closes the whole app.
+        # Logging out (which destroys the dashboard window) returns to the login screen.
+        window.protocol("WM_DELETE_WINDOW", self.quit_app)
+        window.bind("<Destroy>", lambda event: self.return_to_login(event, window))
+
+    def build_admin_dashboard(self, window):
+        from screens.admin_dashboard import AdminDashboard
+
+        AdminDashboard(window)
+
+    def build_teacher_dashboard(self, window):
+        from screens.teacher_dashboard import TeacherDashboard
+        from services.student_service import StudentService
+        from services.teacher_service import TeacherService
+        from services.subject_service import SubjectService
+        from services.grade_service import GradeService
+
+        student_service = StudentService()
+        teacher_service = TeacherService()
+        subject_service = SubjectService(teacher_service)
+        grade_service = GradeService(student_service, subject_service)
+
+        # The teacher dashboard doesn't set up its own window, so do it here
+        window.title("Monster High Academy | Teacher Dashboard")
+        window.geometry("1180x740")
+        window.minsize(980, 640)
+
+        TeacherDashboard(
+            window,
+            student_service=student_service,
+            subject_service=subject_service,
+            grade_service=grade_service,
+            on_logout=window.destroy,  # Logout closes the dashboard window
+        )
+
+    def return_to_login(self, event, window):
+        """Runs when a dashboard window closes: show the login screen again."""
+        if event.widget is not window or self.quitting:
+            return  # a widget inside the window, or the whole app is closing
+
+        self.username_entry.delete(0, tk.END)
+        self.password_entry.delete(0, tk.END)
+        self.message.config(text="")
+        self.deiconify()
+        self.username_entry.focus_set()
+
+    def quit_app(self):
+        self.quitting = True
         self.destroy()
-        Dashboard().mainloop()
 
 
 if __name__ == "__main__":

@@ -116,12 +116,8 @@ def draw_corner_web(canvas, x0, y0, size=62, flip_x=False):
 
 
 class AdminDashboard:
-    """
-    Main Admin Dashboard.
 
-    Same layout as the Teacher Dashboard (sidebar + content area). Every
-    section is a method in this class that draws into self.content_host.
-    """
+    
 
     MAX_CONTENT_WIDTH = 1000
 

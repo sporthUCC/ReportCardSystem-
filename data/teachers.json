@@ -1,1 +1,11 @@
-[]
+[
+    {
+        "person_id": "TCH001",
+        "first_name": "jess",
+        "last_name": "Brown",
+        "email": "Jess@gmail.com",
+        "date_of_birth": "1985-05-18",
+        "gender": "Female",
+        "subject_taught": "mathematics"
+    }
+]
