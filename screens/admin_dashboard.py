@@ -45,6 +45,7 @@ class RoundedCard(tk.Canvas):
     def __init__(self, parent, bg_color=MH_THEME["bg_card"],
                  border_color=MH_THEME["border_purple"], radius=18,
                  border_width=2, padding=18, **kwargs):
+        self._fixed_height = "height" in kwargs
         parent_bg = kwargs.pop("bg", parent.cget("bg"))
         super().__init__(parent, bg=parent_bg, highlightthickness=0, bd=0, **kwargs)
 
@@ -59,6 +60,13 @@ class RoundedCard(tk.Canvas):
             self.padding, self.padding, window=self.inner, anchor="nw"
         )
         self.bind("<Configure>", self._on_resize)
+        self.inner.bind("<Configure>", self._on_inner_resize)
+
+    def _on_inner_resize(self, event):
+        if not self._fixed_height:
+            needed_h = event.height + self.padding * 2
+            if self.winfo_reqheight() != needed_h:
+                self.configure(height=needed_h)
 
     def _round_rect_points(self, x1, y1, x2, y2, r):
         r = max(2, min(r, (x2 - x1) // 2, (y2 - y1) // 2))
@@ -85,8 +93,12 @@ class RoundedCard(tk.Canvas):
         self.itemconfigure(
             self._window_id,
             width=max(w - self.padding * 2, 20),
-            height=max(h - self.padding * 2, 20),
         )
+        if self._fixed_height:
+            self.itemconfigure(
+                self._window_id,
+                height=max(h - self.padding * 2, 20),
+            )
 
 
 def draw_corner_web(canvas, x0, y0, size=62, flip_x=False):
@@ -539,7 +551,7 @@ class AdminDashboard:
         """Top card on every section. action = (button text, command) or None."""
         card = RoundedCard(
             self.content_host, radius=18, padding=18,
-            height=130 if action else 104,
+            height=144 if action else 104,
         )
         card.pack(fill="x", pady=(0, 20))
 

@@ -59,20 +59,23 @@ class GradeService:
 
         return grade
 
-    # Adds a new grade
-    def add_grade(self, student_id, subject_id, academic_year, academic_term, coursework, project, midterm, final_exam):
+        # Adds a new grade
+    def add_grade(self, student_id, subject_id, academic_year, academic_term,
+                coursework, project, midterm, final_exam):
         try:
-            # Check whether student exists
-            student = self.student_service.get_student_by_id(student_id)
+            # Validate academic year
+            if not isinstance(academic_year, str) or not academic_year.strip():
+                raise ValueError("Academic year must be valid text.")
 
-            if student is None:
-                raise ValueError("Student not found.")
+            # Validate academic term
+            if not isinstance(academic_term, str) or not academic_term.strip():
+                raise ValueError("Academic term must be valid text.")
+
+            # Check whether student exists
+            self.student_service.get_student_by_id(student_id)
 
             # Check whether subject exists
-            subject = self.subject_service.get_subject_by_id(subject_id)
-
-            if subject is None:
-                raise ValueError("Subject not found.")
+            self.subject_service.get_subject_by_id(subject_id)
 
             # Generate a unique grade ID
             grade_id = self.generate_grade_id()
@@ -82,7 +85,7 @@ class GradeService:
                 grade_id,
                 student_id,
                 subject_id,
-                academic_year, 
+                academic_year,
                 academic_term,
                 coursework,
                 project,

@@ -12,7 +12,7 @@ class Teacher(User):
         if not isinstance(subject_taught, str) or not subject_taught.strip():
             raise ValueError("Subject taught cannot be empty")
 
-        self.__subject_taught = subject_taught
+        self.__subject_taught = subject_taught.strip()
     #Polymorphism: Overriding the get_person_details method to include the subject taught by the teacher. This demonstrates polymorphism, where the same method name behaves differently based on the object calling it.
     def get_person_details(self):
         details = super().get_person_details()
