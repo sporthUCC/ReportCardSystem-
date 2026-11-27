@@ -8,5 +8,15 @@
         "gender": "Female",
         "grade_level": 8,
         "parent_contact": "8767834567"
+    },
+    {
+        "person_id": "STU002",
+        "first_name": "Jason",
+        "last_name": "Brown",
+        "email": "Jasonbrown@gmail.com",
+        "date_of_birth": "2006-06-21",
+        "gender": "Male",
+        "grade_level": 8,
+        "parent_contact": "876 456-1837"
     }
 ]
