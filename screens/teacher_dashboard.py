@@ -193,12 +193,14 @@ class TeacherDashboard:
         on_logout=None,
         on_open_grades=None,
         teacher_id=None,
+        auth_service=None,
     ):
 
         self.parent = parent
         self.student_service = student_service
         self.subject_service = subject_service
         self.grade_service = grade_service
+        self.auth_service = auth_service
 
         self.teacher_name = teacher_name
         self.teacher_id = teacher_id
@@ -603,15 +605,21 @@ class TeacherDashboard:
             widget.destroy()
 
     def _handle_logout(self):
+        if not messagebox.askyesno("Logout", "Are you sure you want to log out?"):
+            return
 
         if callable(self.on_logout):
+            self.root_frame.destroy()
             self.on_logout()
-
         else:
-            messagebox.showinfo(
-                "Logout",
-                "You have been logged out of the Teacher Portal.",
-            )
+            from screens.monster_login import LoginScreen
+            auth = self.auth_service
+            if auth is None:
+                from services.auth_service import AuthService
+                auth = AuthService()
+            self.parent.destroy()
+            app = LoginScreen(auth)
+            app.mainloop()
 
     def show_section(self, section_key):
         """Changes between the dashboard sections."""
