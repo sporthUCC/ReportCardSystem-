@@ -1,7 +1,7 @@
-from abc import ABC, abstractmethod
+
 from datetime import date
 
-class Person(ABC):
+class Person():
     """initializing the class with the attributes of the person, we are using the double underscore to make the person_id private, this is to ensure that we do not access it directly since it is a private attribute, we can only access it through the get_person_id method. This is a good practice to ensure that we do not change the person_id directly. This called encapsulation"""
     def __init__(self, person_id, first_name, last_name, email, gender=None, *, date_of_birth=None):
         self.__person_id = person_id

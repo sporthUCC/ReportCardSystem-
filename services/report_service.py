@@ -1,3 +1,4 @@
+
 class ReportService:
     """Handles collecting and preparing student report information."""
 
@@ -26,18 +27,24 @@ class ReportService:
             if student is None:
                 raise ValueError("Student not found.")
 
-            # Retrieve student's grades.
-            grades = self.grade_service.get_grades_by_student(student_id)
+            # Retrieve the student's grades.
+            all_grades = self.grade_service.get_grades_by_student(student_id)
 
-            # Filter grades by academic year and term.
+            # Clean the selected year and term.
+            academic_year = str(academic_year).strip()
+            academic_term = str(academic_term).strip()
+
+            # Filter grades using the selected academic year and term.
             grades = [
-                grade for grade in grades
-                if grade["academic_year"] == academic_year
-                and grade["academic_term"] == academic_term
+                grade for grade in all_grades
+                if str(grade.get("academic_year", "")).strip() == academic_year
+                and str(grade.get("academic_term", "")).strip() == academic_term
             ]
 
             if not grades:
-                raise ValueError("No grades found for this academic term.")
+                raise ValueError(
+                    f"No grades found for {academic_year}, {academic_term}."
+                )
 
             # Retrieve subjects associated with the grades.
             subjects = []
@@ -158,6 +165,9 @@ class ReportService:
             })
 
         # Calculate the student's overall term average.
+        if not subject_results:
+            return "No subject results available for this report."
+
         final_average = sum(
             subject["average"] for subject in subject_results
         ) / len(subject_results)
@@ -169,7 +179,7 @@ class ReportService:
             self.grade_service.get_grade_classification(final_average)
         )
 
-        # Generate an academic comment based on the overall letter grade.
+        # Generate an academic comment.
         academic_comment = self.get_academic_comment(
             overall_letter_grade
         )
