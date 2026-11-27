@@ -129,12 +129,12 @@ def draw_corner_web(canvas, x0, y0, size=62, flip_x=False):
 
 class AdminDashboard:
 
-    
-
     MAX_CONTENT_WIDTH = 1000
 
-    def __init__(self, root, administrator=None):
+    def __init__(self, root, administrator=None, auth_service=None, on_logout=None):
         self.root = root
+        self.auth_service = auth_service
+        self.on_logout = on_logout
 
         # default admin so this file can be run on its own for testing
         if administrator is None:
@@ -498,13 +498,30 @@ class AdminDashboard:
         draw_corner_web(web_canvas, 178, 0, size=62, flip_x=True)
 
         tk.Button(
-            self.sidebar, text="⎋  Logout", command=self.root.destroy,
+            self.sidebar, text="⎋  Logout", command=self._logout,
             bg="#261426", fg=MH_THEME["text_white"],
             activebackground=MH_THEME["accent_pink"],
             activeforeground=MH_THEME["text_white"],
             font=("Segoe UI", 10, "bold"), relief="flat", anchor="w",
             padx=18, pady=10, cursor="hand2",
         ).pack(side="bottom", fill="x", padx=14, pady=12)
+
+    def _logout(self):
+        if not messagebox.askyesno("Logout", "Are you sure you want to log out?"):
+            return
+
+        if self.on_logout:
+            self.root_frame.destroy()
+            self.on_logout()
+        else:
+            from screens.monster_login import LoginScreen
+            auth = self.auth_service
+            if auth is None:
+                from services.auth_service import AuthService
+                auth = AuthService()
+            self.root.destroy()
+            app = LoginScreen(auth)
+            app.mainloop()
 
     def _highlight_nav(self, active_key):
         self.active_tab = active_key
