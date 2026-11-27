@@ -475,8 +475,8 @@ class AdminDashboard:
                 bg=MH_THEME["bg_sidebar"], fg=MH_THEME["text_white"],
                 activebackground=MH_THEME["bg_input"],
                 activeforeground=MH_THEME["accent_pink"],
-                font=("Segoe UI", 11, "bold"), relief="flat", anchor="w",
-                padx=18, pady=10, cursor="hand2",
+                font=("Segoe UI", 10, "bold"), relief="flat", anchor="w",
+                padx=12, pady=10, cursor="hand2",
             )
             btn.pack(fill="x", padx=10, pady=3)
             self.nav_buttons[key] = btn
@@ -1382,6 +1382,7 @@ class AdminDashboard:
         buttons.pack(fill="x")
         self._btn(buttons, "Save / Update Grades", self._save_grades).pack(side="left")
         self._btn(buttons, "Clear Scores", self._clear_score_inputs, "dark").pack(side="left", padx=(10, 0))
+        self._btn(buttons, "Delete Selected Grade", self._delete_selected_grade, "dark").pack(side="right")
 
         list_card = RoundedCard(self.content_host, radius=18, padding=14)
         list_card.pack(fill="both", expand=True)
@@ -1519,6 +1520,37 @@ class AdminDashboard:
 
         for key, var in self.g_scores.items():
             var.set(str(grade.get(key, "")))
+
+    def _delete_selected_grade(self):
+        """Deletes the grade selected in the grades table."""
+        grade_id = self._selected_id(self.grades_tree, "grade")
+        if not grade_id:
+            return
+
+        grade = self.grade_lookup.get(grade_id)
+        if not grade:
+            messagebox.showerror("Grade Not Found", "The selected grade could not be found.")
+            return
+
+        student_name = self._student_name(grade.get("student_id"))
+        subject_name = self._subject_name(grade.get("subject_id"))
+
+        confirmed = messagebox.askyesno(
+            "Confirm Delete",
+            f"Delete the grade for {student_name} in {subject_name}?\n\nThis action cannot be undone.",
+        )
+        if not confirmed:
+            return
+
+        result = self.grade_service.delete_grade(grade_id)
+
+        if isinstance(result, str) and "successfully" in result.lower():
+            self._load_data()
+            self._refresh_grades_table()
+            self._clear_score_inputs()
+            messagebox.showinfo("Grade Deleted", result)
+        else:
+            messagebox.showerror("Unable to Delete Grade", str(result))
 
     # ------------------------------------------------------------------
     # REPORTS
