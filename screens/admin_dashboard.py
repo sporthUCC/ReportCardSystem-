@@ -513,12 +513,22 @@ class AdminDashboard:
             "MH.TCombobox", fieldbackground=MH_THEME["bg_input"],
             background=MH_THEME["bg_input"], foreground=MH_THEME["text_white"],
             arrowcolor=MH_THEME["accent_pink"],
+            selectbackground=MH_THEME["bg_input"],
+            selectforeground=MH_THEME["text_white"],
+        )
+        style.map(
+            "MH.TCombobox",
+            fieldbackground=[("readonly", MH_THEME["bg_input"])],
+            foreground=[("readonly", MH_THEME["text_white"])],
+            selectbackground=[("readonly", MH_THEME["bg_input"])],
+            selectforeground=[("readonly", MH_THEME["text_white"])],
         )
 
-        # Style the pop-out dropdown listboxes inside Comboboxes to stay dark
-        self.root.option_add("*TCombobox*Listbox.background", MH_THEME["bg_input"])
-        self.root.option_add("*TCombobox*Listbox.foreground", MH_THEME["text_white"])
+        # Pop-out dropdown list: light background with black text
+        self.root.option_add("*TCombobox*Listbox.background", "#F3E8FF")
+        self.root.option_add("*TCombobox*Listbox.foreground", "#000000")
         self.root.option_add("*TCombobox*Listbox.selectBackground", MH_THEME["accent_pink"])
+        self.root.option_add("*TCombobox*Listbox.selectForeground", "#FFFFFF")
 
     def _build_layout(self):
         """

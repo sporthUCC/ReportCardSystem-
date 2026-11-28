@@ -402,15 +402,31 @@ class TeacherDashboard:
             background=[("selected", MH_THEME["accent_pink"])],
             foreground=[("selected", MH_THEME["text_white"])],
         )
-
+        
         style.configure(
             "MH.TCombobox",
             fieldbackground=MH_THEME["bg_input"],
             background=MH_THEME["bg_input"],
             foreground=MH_THEME["text_white"],
             arrowcolor=MH_THEME["accent_pink"],
+            selectbackground=MH_THEME["bg_input"],
+            selectforeground=MH_THEME["text_white"],
         )
 
+        style.map(
+            "MH.TCombobox",
+            fieldbackground=[("readonly", MH_THEME["bg_input"])],
+            foreground=[("readonly", MH_THEME["text_white"])],
+            selectbackground=[("readonly", MH_THEME["bg_input"])],
+            selectforeground=[("readonly", MH_THEME["text_white"])],
+        )
+
+        # Pop-out dropdown list: light background with black text
+        self.parent.option_add("*TCombobox*Listbox.background", "#F3E8FF")
+        self.parent.option_add("*TCombobox*Listbox.foreground", "#000000")
+        self.parent.option_add("*TCombobox*Listbox.selectBackground", MH_THEME["accent_pink"])
+        self.parent.option_add("*TCombobox*Listbox.selectForeground", "#FFFFFF")
+        
     # ---------------------------------------------------------
     # MAIN LAYOUT
     # ---------------------------------------------------------
