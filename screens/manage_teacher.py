@@ -1,4 +1,3 @@
-
 import math
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -12,11 +11,14 @@ class TeacherScreen:
 
     def __init__(self, parent, teacher_service):
 
+        # Keep references to the window and backend service
         self.parent = parent
         self.teacher_service = teacher_service
 
+        # Cache of all teacher records currently displayed
         self.all_teachers = []
 
+        # Apply the shared Monster High theme, build the UI, then load data
         self.apply_monster_high_theme()
         self.build_screen()
         self.load_teachers()
@@ -28,6 +30,7 @@ class TeacherScreen:
     # Applies the same Monster High colours and fonts used on the other screens.
     def apply_monster_high_theme(self):
 
+        # Use ttk "clam" theme so our custom colors apply consistently
         style = ttk.Style(self.parent)
         style.theme_use("clam")
 
@@ -53,6 +56,7 @@ class TeacherScreen:
             ("Georgia", 10)
         )
 
+        # Global defaults for every ttk widget on this screen
         style.configure(
             ".",
             background=THEME["bg_root"],
@@ -62,9 +66,11 @@ class TeacherScreen:
             focuscolor=THEME["accent_pink"]
         )
 
+        # Frame styles: plain background vs. surface "card" background
         style.configure("MH.TFrame", background=THEME["bg_root"])
         style.configure("MH.Card.TFrame", background=THEME["bg_surface"])
 
+        # Standard label on the root background
         style.configure(
             "MH.TLabel",
             background=THEME["bg_root"],
@@ -72,6 +78,7 @@ class TeacherScreen:
             font=("Georgia", 10)
         )
 
+        # Big page heading label
         style.configure(
             "MH.Heading.TLabel",
             background=THEME["bg_root"],
@@ -79,6 +86,7 @@ class TeacherScreen:
             font=("Georgia", 22, "bold")
         )
 
+        # Purple subheading label
         style.configure(
             "MH.Subheading.TLabel",
             background=THEME["bg_root"],
@@ -86,6 +94,7 @@ class TeacherScreen:
             font=("Georgia", 14, "bold")
         )
 
+        # Label variants used inside cards (surface background)
         style.configure(
             "MH.Card.TLabel",
             background=THEME["bg_surface"],
@@ -114,6 +123,7 @@ class TeacherScreen:
             font=("Georgia", 9, "bold")
         )
 
+        # Labelframe used for grouped form sections
         style.configure(
             "MH.TLabelframe",
             background=THEME["bg_surface"],
@@ -129,6 +139,7 @@ class TeacherScreen:
             font=("Georgia", 10, "bold")
         )
 
+        # Standard action button
         style.configure(
             "MH.TButton",
             background=THEME["bg_surface"],
@@ -144,6 +155,7 @@ class TeacherScreen:
             foreground=[("active", THEME["bg_root"])]
         )
 
+        # Pink call-to-action button
         style.configure(
             "MH.Pink.TButton",
             background=THEME["accent_pink"],
@@ -159,6 +171,7 @@ class TeacherScreen:
             foreground=[("active", THEME["bg_root"])]
         )
 
+        # Secondary "cyan"/purple-outlined button
         style.configure(
             "MH.Cyan.TButton",
             background=THEME["bg_surface"],
@@ -174,6 +187,7 @@ class TeacherScreen:
             foreground=[("active", THEME["bg_root"])]
         )
 
+        # Text entry widget
         style.configure(
             "MH.TEntry",
             fieldbackground=THEME["bg_root"],
@@ -189,6 +203,7 @@ class TeacherScreen:
             foreground=[("readonly", THEME["text_purple"])]
         )
 
+        # Combobox dropdown
         style.configure(
             "MH.TCombobox",
             fieldbackground=THEME["bg_root"],
@@ -207,6 +222,7 @@ class TeacherScreen:
             selectforeground=[("readonly", THEME["text_main"])]
         )
 
+        # Table (Treeview) base style
         style.configure(
             "MH.Treeview",
             background=THEME["bg_surface"],
@@ -217,6 +233,7 @@ class TeacherScreen:
             font=("Georgia", 10)
         )
 
+        # Table header row
         style.configure(
             "MH.Treeview.Heading",
             background=THEME["bg_root"],
@@ -226,6 +243,7 @@ class TeacherScreen:
             padding=(8, 6)
         )
 
+        # Highlight the selected row in pink
         style.map(
             "MH.Treeview",
             background=[("selected", THEME["accent_pink"])],
@@ -241,6 +259,7 @@ class TeacherScreen:
         # Keeps the table row colours working on newer Tk versions
         def fixed_map(option):
 
+            # Drop the internal "!disabled !selected" entries so tag colors show through
             return [
                 elm for elm in style.map(
                     "MH.Treeview",
@@ -255,6 +274,7 @@ class TeacherScreen:
             background=fixed_map("background")
         )
 
+        # Vertical scrollbar styling
         style.configure(
             "MH.Vertical.TScrollbar",
             background=THEME["bg_surface"],
@@ -266,6 +286,7 @@ class TeacherScreen:
     # Draws the same spiderweb banner used on the student screen.
     def create_banner(self, parent, title, subtitle="", height=90):
 
+        # Canvas that fills the top of a card and draws the banner decorations
         canvas = tk.Canvas(
             parent,
             height=height,
@@ -273,10 +294,12 @@ class TeacherScreen:
             highlightthickness=0
         )
 
+        # Everything scales relative to a 90px base height
         scale = height / 90
 
         def draw(width):
 
+            # Clear and redraw whenever the canvas size changes
             canvas.delete("all")
 
             canvas.create_rectangle(
@@ -290,6 +313,7 @@ class TeacherScreen:
             # Draws a spiderweb in each corner.
             def draw_web(corner_x, direction):
 
+                # Radial spokes from the corner
                 for angle in (0, 22, 45, 68, 90):
 
                     canvas.create_line(
@@ -300,6 +324,7 @@ class TeacherScreen:
                         fill=THEME["text_purple"]
                     )
 
+                # Concentric arcs connecting the spokes
                 for ring in range(1, 5):
 
                     r = int(radius * ring / 4)
@@ -326,9 +351,11 @@ class TeacherScreen:
                             outline=THEME["text_purple"]
                         )
 
+            # One web on the left, one mirrored on the right
             draw_web(0, 1)
             draw_web(width, -1)
 
+            # Title and optional subtitle text placed next to the left web
             text_x = int(radius * 0.6) + 24
             title_y = (
                 int(height * 0.42)
@@ -364,6 +391,7 @@ class TeacherScreen:
                 outline=""
             )
 
+        # Redraw the banner whenever the canvas is resized
         canvas.bind(
             "<Configure>",
             lambda event: draw(event.width)
@@ -383,14 +411,17 @@ class TeacherScreen:
     # Centres popups on the screen.
     def center_popup(self, popup, width, height):
 
+        # Make sure Tk has computed real window size before positioning
         popup.update_idletasks()
 
         screen_width = popup.winfo_screenwidth()
         screen_height = popup.winfo_screenheight()
 
+        # Clamp the requested size so the popup fits on small screens
         width = min(width, screen_width - 60)
         height = min(height, screen_height - 100)
 
+        # Center horizontally, and slightly above center vertically
         x = (screen_width - width) // 2
         y = max((screen_height - height) // 2 - 20, 10)
 
@@ -399,11 +430,13 @@ class TeacherScreen:
     # Adds alternating colours to the table rows.
     def configure_row_tags(self, table):
 
+        # Tag used for even rows
         table.tag_configure(
             "even",
             background=THEME["bg_surface"]
         )
 
+        # Tag used for odd rows
         table.tag_configure(
             "odd",
             background=THEME["bg_root"]
@@ -416,6 +449,7 @@ class TeacherScreen:
     # Builds the teacher management screen.
     def build_screen(self):
 
+        # Outer frame that holds the banner, buttons, and teacher table
         self.main_frame = ttk.Frame(
             self.parent,
             padding=20,
@@ -423,6 +457,7 @@ class TeacherScreen:
         )
         self.main_frame.pack(fill="both", expand=True)
 
+        # Spiderweb title banner
         self.create_banner(
             self.main_frame,
             "Teacher Management",
@@ -430,6 +465,7 @@ class TeacherScreen:
             height=90
         ).pack(fill="x")
 
+        # Pink divider under the banner
         self.create_divider(
             self.main_frame
         ).pack(fill="x", pady=(0, 15))
@@ -476,6 +512,7 @@ class TeacherScreen:
         )
         table_frame.pack(fill="both", expand=True)
 
+        # Column identifiers in the order they should appear
         columns = (
             "teacher_id",
             "first_name",
@@ -491,8 +528,10 @@ class TeacherScreen:
             style="MH.Treeview"
         )
 
+        # Enable alternating row colors on this table
         self.configure_row_tags(self.teacher_table)
 
+        # Column headers
         self.teacher_table.heading(
             "teacher_id",
             text="Teacher ID"
@@ -514,6 +553,7 @@ class TeacherScreen:
             text="Subject Taught"
         )
 
+        # Column widths
         self.teacher_table.column(
             "teacher_id",
             width=110
@@ -535,6 +575,7 @@ class TeacherScreen:
             width=180
         )
 
+        # Vertical scrollbar wired to the teacher table
         scrollbar = ttk.Scrollbar(
             table_frame,
             orient="vertical",
@@ -582,9 +623,11 @@ class TeacherScreen:
     # Displays teacher records in the table.
     def display_teachers(self, teachers):
 
+        # Clear the table before refilling it
         for item in self.teacher_table.get_children():
             self.teacher_table.delete(item)
 
+        # Insert each teacher and tag rows alternating even/odd
         for index, teacher in enumerate(teachers):
 
             self.teacher_table.insert(
@@ -607,6 +650,7 @@ class TeacherScreen:
 
         selected_item = self.teacher_table.selection()
 
+        # No row selected -> warn and bail out
         if not selected_item:
 
             messagebox.showwarning(
@@ -616,6 +660,7 @@ class TeacherScreen:
 
             return None
 
+        # The teacher ID is the first column value of the selected row
         teacher_id = self.teacher_table.item(
             selected_item[0],
             "values"
@@ -639,6 +684,7 @@ class TeacherScreen:
     # Opens the teacher registration window.
     def open_add_teacher(self):
 
+        # Modal popup window for registering a new teacher
         popup = tk.Toplevel(self.parent)
         popup.title("Register New Teacher")
         popup.resizable(False, False)
@@ -649,11 +695,13 @@ class TeacherScreen:
             highlightthickness=2
         )
 
+        # Keep the popup tied to (and on top of) the main window
         popup.transient(self.parent.winfo_toplevel())
 
         self.center_popup(popup, 500, 590)
         popup.grab_set()
 
+        # Card-styled inner frame for the popup contents
         main_frame = ttk.Frame(
             popup,
             padding=25,
@@ -775,6 +823,7 @@ class TeacherScreen:
         dob_entry.grid(
             row=5, column=1, sticky="ew", pady=7
         )
+        # Pre-fill with the expected format hint
         dob_entry.insert(0, "YYYY-MM-DD")
 
         ttk.Label(
@@ -786,6 +835,7 @@ class TeacherScreen:
         # Saves the teacher using TeacherService.
         def save_teacher():
 
+            # Read and strip every field
             first_name = first_name_entry.get().strip()
             last_name = last_name_entry.get().strip()
             email = email_entry.get().strip()
@@ -840,6 +890,7 @@ class TeacherScreen:
                     parent=popup
                 )
 
+                # Refresh the table and close the popup
                 self.load_teachers()
                 popup.destroy()
 
@@ -872,6 +923,7 @@ class TeacherScreen:
             style="MH.TButton"
         ).pack(side="left")
 
+        # Focus the first field for quick typing
         first_name_entry.focus_set()
 
     # ------------------------------------------------------------------
@@ -883,9 +935,11 @@ class TeacherScreen:
 
         teacher = self.get_selected_teacher()
 
+        # Bail out if nothing was selected or lookup failed
         if teacher is None:
             return
 
+        # Modal popup window for editing
         popup = tk.Toplevel(self.parent)
         popup.title("Edit Teacher")
         popup.resizable(False, False)
@@ -945,6 +999,7 @@ class TeacherScreen:
             0,
             teacher.get("person_id", "")
         )
+        # Lock the ID field so it can't be edited
         teacher_id_entry.configure(state="readonly")
 
         # First name.
@@ -1064,6 +1119,7 @@ class TeacherScreen:
 
         existing_dob = teacher.get("date_of_birth")
 
+        # Pre-fill with the existing date (trimmed to YYYY-MM-DD)
         if existing_dob:
             dob_entry.insert(0, str(existing_dob)[:10])
 
@@ -1076,6 +1132,7 @@ class TeacherScreen:
         # Saves the updated teacher information.
         def save_changes():
 
+            # Read and strip every field
             first_name = first_name_entry.get().strip()
             last_name = last_name_entry.get().strip()
             email = email_entry.get().strip()
@@ -1112,6 +1169,7 @@ class TeacherScreen:
                     )
                     return
 
+            # Bundle only the editable fields for the service update
             update_data = {
                 "first_name": first_name,
                 "last_name": last_name,
@@ -1134,6 +1192,7 @@ class TeacherScreen:
                     parent=popup
                 )
 
+                # Refresh the table and close the popup
                 self.load_teachers()
                 popup.destroy()
 
@@ -1177,6 +1236,7 @@ class TeacherScreen:
 
         teacher = self.get_selected_teacher()
 
+        # Bail out if nothing was selected
         if teacher is None:
             return
 
@@ -1185,6 +1245,7 @@ class TeacherScreen:
             f"{teacher.get('last_name', '')}"
         )
 
+        # Ask before deleting so this isn't accidentally triggered
         confirm = messagebox.askyesno(
             "Confirm Delete",
             f"Are you sure you want to delete {teacher_name}?"
@@ -1193,6 +1254,7 @@ class TeacherScreen:
         if not confirm:
             return
 
+        # Call the service; success returns a message containing "successfully"
         result = self.teacher_service.delete_teacher(
             teacher["person_id"]
         )
@@ -1210,6 +1272,7 @@ class TeacherScreen:
 # Allows the screen to be tested on its own.
 if __name__ == "__main__":
 
+    # Create a root window and show the screen by itself
     root = tk.Tk()
     root.title("Monster High Academy - Teacher Management")
     root.geometry("1100x720")

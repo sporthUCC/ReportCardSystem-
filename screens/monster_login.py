@@ -6,6 +6,7 @@ SCHOOL_NAME = "Monster High School"
 # assets/school_logo.png, found relative to this file so it works from any folder
 LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "school_logo.png"
 
+# Shared color palette for the login screen and its widgets
 THEME = {
     "bg_root": "#120B18",
     "bg_surface": "#1D1226",
@@ -24,6 +25,7 @@ def make_logo(parent, bg):
             # Pillow (pip install pillow) shrinks big logos smoothly
             from PIL import Image, ImageTk
             img = Image.open(LOGO_PATH).convert("RGBA")
+            # Trim transparent border, then shrink to fit the panel
             img = img.crop(img.getchannel("A").getbbox() or (0, 0, *img.size))
             img.thumbnail((300, 230))
             parent.logo = ImageTk.PhotoImage(img)  # kept on parent so Tkinter keeps it
@@ -35,21 +37,22 @@ def make_logo(parent, bg):
     except (tk.TclError, FileNotFoundError, OSError):
         pass  # no logo file found, so draw the skull badge below
 
+    # Fallback: draw a pink-outlined skull badge directly on a Canvas
     pink, dark, bone = THEME["accent_pink"], THEME["bg_root"], THEME["text_main"]
     c = tk.Canvas(parent, width=110, height=110, bg=bg, highlightthickness=0)
-    c.create_oval(3, 3, 107, 107, outline=pink, width=3, fill=dark)
-    c.create_oval(25, 18, 85, 70, fill=bone, outline="")
-    c.create_polygon(38, 60, 72, 60, 70, 80, 62, 87, 48, 87, 40, 80, fill=bone, outline="")
-    c.create_oval(33, 40, 52, 62, fill=dark, outline="")
-    c.create_oval(58, 40, 77, 62, fill=dark, outline="")
-    c.create_oval(39, 45, 45, 51, fill=pink, outline="")
-    c.create_oval(64, 45, 70, 51, fill=pink, outline="")
-    c.create_polygon(50, 65, 60, 65, 55, 73, fill=dark, outline="")
+    c.create_oval(3, 3, 107, 107, outline=pink, width=3, fill=dark)  # outer ring
+    c.create_oval(25, 18, 85, 70, fill=bone, outline="")             # skull top
+    c.create_polygon(38, 60, 72, 60, 70, 80, 62, 87, 48, 87, 40, 80, fill=bone, outline="")  # jaw
+    c.create_oval(33, 40, 52, 62, fill=dark, outline="")             # left eye socket
+    c.create_oval(58, 40, 77, 62, fill=dark, outline="")             # right eye socket
+    c.create_oval(39, 45, 45, 51, fill=pink, outline="")             # left pupil
+    c.create_oval(64, 45, 70, 51, fill=pink, outline="")             # right pupil
+    c.create_polygon(50, 65, 60, 65, 55, 73, fill=dark, outline="")  # nose
     for x in (47, 55, 63):
-        c.create_line(x, 78, x, 87, fill=dark, width=2)
-    c.create_polygon(66, 24, 51, 15, 51, 33, fill=pink, outline="")
-    c.create_polygon(66, 24, 81, 15, 81, 33, fill=pink, outline="")
-    c.create_oval(61, 19, 71, 29, fill="#C2005E", outline="")
+        c.create_line(x, 78, x, 87, fill=dark, width=2)              # teeth
+    c.create_polygon(66, 24, 51, 15, 51, 33, fill=pink, outline="")  # bow left loop
+    c.create_polygon(66, 24, 81, 15, 81, 33, fill=pink, outline="")  # bow right loop
+    c.create_oval(61, 19, 71, 29, fill="#C2005E", outline="")        # bow knot
     return c
 
 
@@ -68,14 +71,17 @@ class LoginScreen(tk.Tk):
         self.resizable(False, False)
         self.configure(bg=THEME["bg_surface"])
 
+        # Build the two halves of the login window
         self.build_left_panel()
         self.build_right_panel()
 
+        # Pressing Enter anywhere on the window triggers login, and focus starts on username
         self.bind("<Return>", lambda event: self.login())
         self.username_entry.focus_set()
 
     # ---------- Left side: spooky banner ----------
     def build_left_panel(self):
+        # Full-height purple panel that holds the decorative graphics
         c = tk.Canvas(self, width=LEFT_W, height=HEIGHT, bg=PURPLE, highlightthickness=0)
         c.pack(side="left", fill="y")
 
@@ -103,6 +109,7 @@ class LoginScreen(tk.Tk):
                           fill="black", outline="")
 
     def draw_bat(self, canvas, x, y, size):
+        # Normalised bat silhouette; each point is scaled by size and offset by (x, y)
         shape = [(0, -0.3), (0.5, -0.9), (0.7, -0.5), (1.5, -0.8), (2.2, -0.1),
                  (1.7, 0.4), (1.2, 0.1), (0.7, 0.7), (0, 0.3),
                  (-0.7, 0.7), (-1.2, 0.1), (-1.7, 0.4), (-2.2, -0.1),
@@ -114,6 +121,7 @@ class LoginScreen(tk.Tk):
 
     # ---------- Right side: the form ----------
     def build_right_panel(self):
+        # Right half of the window, holding the login form centered
         panel = tk.Frame(self, bg=THEME["bg_surface"])
         panel.pack(side="left", fill="both", expand=True)
 
@@ -125,14 +133,17 @@ class LoginScreen(tk.Tk):
         tk.Label(form, text="Log in to continue", bg=THEME["bg_surface"],
                  fg="#CDB8E0").pack(anchor="w", pady=(0, 22))
 
+        # Username and password input fields
         self.username_entry = self.make_field(form, "Username", show="")
         self.password_entry = self.make_field(form, "Password", show="*")
 
+        # Label used to show login errors / messages
         self.message = tk.Label(form, text="", bg=THEME["bg_surface"],
                                 fg=THEME["accent_pink"], wraplength=300,
                                 justify="left", height=2)
         self.message.pack(anchor="w")
 
+        # Main login button
         tk.Button(form, text="LOGIN", command=self.login, width=30,
                   bg=THEME["accent_pink"], fg=THEME["text_main"],
                   activebackground=THEME["text_main"], activeforeground=THEME["bg_root"],
@@ -146,20 +157,24 @@ class LoginScreen(tk.Tk):
                          bg=THEME["bg_root"], fg=THEME["text_main"],
                          insertbackground=THEME["text_main"], relief="flat")
         entry.pack(pady=(3, 0), ipady=6)
+        # Thin pink underline under each field
         tk.Frame(parent, bg=THEME["accent_pink"], height=2).pack(fill="x", pady=(0, 14))
         return entry
 
     # ---------- Login ----------
     def login(self):
+        # Ask AuthService to check the credentials; returns (role, message)
         role, message = self.auth_service.login(
             self.username_entry.get(), self.password_entry.get()
         )
 
+        # Bad credentials: show the message and clear the password field
         if role is None:
             self.message.config(text=message)
             self.password_entry.delete(0, tk.END)
             return
 
+        # Good credentials: open the correct dashboard
         self.open_dashboard(role)
 
     def open_dashboard(self, role):
@@ -169,6 +184,7 @@ class LoginScreen(tk.Tk):
         window.configure(bg=THEME["bg_root"])
 
         try:
+            # Pick the dashboard based on the role returned by AuthService
             if role == "Administrator":
                 self.build_admin_dashboard(window)
             elif role == "Teacher":
@@ -191,17 +207,20 @@ class LoginScreen(tk.Tk):
         window.bind("<Destroy>", lambda event: self.return_to_login(event, window))
 
     def build_admin_dashboard(self, window):
+        # Imported lazily so this module doesn't load the admin dashboard until needed
         from screens.admin_dashboard import AdminDashboard
 
         AdminDashboard(window)
 
     def build_teacher_dashboard(self, window):
+        # Lazy imports for the teacher dashboard and its backend services
         from screens.teacher_dashboard import TeacherDashboard
         from services.student_service import StudentService
         from services.teacher_service import TeacherService
         from services.subject_service import SubjectService
         from services.grade_service import GradeService
 
+        # Wire up the service objects (subject depends on teacher, grade depends on student + subject)
         student_service = StudentService()
         teacher_service = TeacherService()
         subject_service = SubjectService(teacher_service)
@@ -222,9 +241,11 @@ class LoginScreen(tk.Tk):
 
     def return_to_login(self, event, window):
         """Runs when a dashboard window closes: show the login screen again."""
+        # Ignore <Destroy> events from child widgets and when the whole app is quitting
         if event.widget is not window or self.quitting:
             return  # a widget inside the window, or the whole app is closing
 
+        # Reset the login form and bring the login window back to the front
         self.username_entry.delete(0, tk.END)
         self.password_entry.delete(0, tk.END)
         self.message.config(text="")
@@ -232,7 +253,6 @@ class LoginScreen(tk.Tk):
         self.username_entry.focus_set()
 
     def quit_app(self):
+        # Flag so return_to_login knows not to re-show the login window
         self.quitting = True
         self.destroy()
-
-
