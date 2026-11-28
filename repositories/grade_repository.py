@@ -1,3 +1,4 @@
+# JSONStorage handles reading/writing the JSON file; GRADE_FILE is the path to grades.json
 from storage.json_storage import JSONStorage
 from config.settings import GRADE_FILE
 
@@ -11,6 +12,7 @@ application is closed.
 class GradeRepository:
 
     def __init__(self):
+        # Connect this repository to the grades.json file
         self.storage = JSONStorage(GRADE_FILE)
 
     def get_all_grades(self):
@@ -19,8 +21,10 @@ class GradeRepository:
 
     def add_grade(self, grade):
         """Adds a new grade record if no record exists for that student, subject, year, and term."""
+        # Load the saved grades so we can check for duplicates first
         grades = self.storage.load_data()
 
+        # A grade is a duplicate if the student, subject, year and term all match an existing record
         for grade_data in grades:
             if (
                 grade_data["student_id"] == grade.get_student_id()
@@ -32,6 +36,7 @@ class GradeRepository:
                     "Grade record already exists for this student, subject and academic period."
                 )
 
+        # Convert the Grade object to a dictionary, add it to the list and save the file
         grade_data = grade.get_grade_details()
         grades.append(grade_data)
         self.storage.save_data(grades)
@@ -39,20 +44,24 @@ class GradeRepository:
     def get_grade_by_id(self, grade_id):
         """Retrieves a single grade record matching grade_id, or None if not found."""
         grades = self.storage.load_data()
+        # strip() removes extra spaces the user may have typed
         grade_id = grade_id.strip()
 
         for grade_data in grades:
             if grade_data["grade_id"] == grade_id:
                 return grade_data
 
+        # No match found
         return None
 
     def get_grades_by_student_id(self, student_id):
         """Returns all grade records belonging to student_id."""
         grades = self.storage.load_data()
         student_grades = []
+        # upper() makes the comparison case-insensitive (stu001 matches STU001)
         student_id = student_id.strip().upper()
 
+        # Collect every grade that belongs to this student
         for grade_data in grades:
             if grade_data["student_id"].upper() == student_id:
                 student_grades.append(grade_data)
@@ -66,6 +75,7 @@ class GradeRepository:
 
         for grade_data in grades:
             if grade_data["grade_id"].upper() == grade_id.upper():
+                # Only these fields are allowed to change, and only if they were provided in update_data
                 for field in (
                     "student_id",
                     "subject_id",
@@ -79,9 +89,11 @@ class GradeRepository:
                     if field in update_data:
                         grade_data[field] = update_data[field]
 
+                # Save the changes to the file and report success
                 self.storage.save_data(grades)
                 return True
 
+        # No grade with that ID was found
         return False
 
     def delete_grade(self, grade_id):
@@ -91,10 +103,12 @@ class GradeRepository:
 
         for grade_data in grades:
             if grade_data["grade_id"] == grade_id:
+                # Remove the record and save the updated list
                 grades.remove(grade_data)
                 self.storage.save_data(grades)
                 return True
 
+        # No grade with that ID was found
         return False
 
     def search_grades(self, search_term):
@@ -104,12 +118,15 @@ class GradeRepository:
         matching_grades = []
 
         for grade_data in grades:
+            # An exact grade ID match returns that single record right away
             if grade_data["grade_id"].upper() == search_term:
                 return grade_data
 
+            # Otherwise collect all grades whose student ID matches the search term
             if grade_data["student_id"].upper() == search_term:
                 matching_grades.append(grade_data)
 
+        # Return the list of matches, or None if nothing was found
         if matching_grades:
             return matching_grades
 

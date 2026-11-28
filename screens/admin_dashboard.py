@@ -58,19 +58,24 @@ class RoundedCard(tk.Canvas):
         Sets up a custom Canvas-based rounded card with an inner Frame so regular
         Tkinter widgets can sit inside a rounded border without getting clipped.
         """
+        # Remember whether a fixed height was passed; if not, the card auto-grows to fit its content
         self._fixed_height = "height" in kwargs
         # Match the canvas background to the parent container so the outer corners look transparent
         parent_bg = kwargs.pop("bg", parent.cget("bg"))
         parent_bg = kwargs.pop("bg", parent.cget("bg"))
         super().__init__(parent, bg=parent_bg, highlightthickness=0, bd=0, **kwargs)
+        
 
+        # Store the card's look settings so the drawing methods can use them later
         self.bg_color = bg_color
         self.border_color = border_color
         self.radius = radius
         self.border_width = border_width
         self.padding = padding
 
+        # inner is the normal Frame that other widgets get packed into
         self.inner = tk.Frame(self, bg=self.bg_color)
+        # Place the inner frame on the canvas, offset by the padding
         self._window_id = self.create_window(
             self.padding, self.padding, window=self.inner, anchor="nw"
         )
@@ -94,6 +99,7 @@ class RoundedCard(tk.Canvas):
         Clamps the radius so the corners don't overlap if the card gets small.
         """
         r = max(2, min(r, (x2 - x1) // 2, (y2 - y1) // 2))
+        # Points go around the rectangle; smooth=True later turns the corners into curves
         return [
             x1 + r, y1, x2 - r, y1, x2, y1, x2, y1 + r,
             x2, y2 - r, x2, y2, x2 - r, y2, x1 + r, y2,
@@ -118,6 +124,7 @@ class RoundedCard(tk.Canvas):
         inset = self.border_width / 2
         points = self._round_rect_points(inset, inset, w - inset, h - inset, self.radius)
 
+        # Draw the filled, outlined rounded shape
         self.create_polygon(
             points, smooth=True, fill=self.bg_color,
             outline=self.border_color, width=self.border_width, tags="card_shape",
@@ -139,13 +146,16 @@ class RoundedCard(tk.Canvas):
 
 def draw_corner_web(canvas, x0, y0, size=62, flip_x=False):
     """Draws a small spiderweb decoration."""
+    # sx flips the drawing direction horizontally for the right-hand web
     sx = -1 if flip_x else 1
     cx = x0 + (size if flip_x else 0)
     cy = y0
     color = "#3B2459"
+    # Three rings of the web and the angles of the straight "spokes"
     radii = [size * 0.35, size * 0.65, size * 0.95]
     angles = [0, 22, 45, 67, 90]
 
+    # Draw the straight lines going out from the corner
     for deg in angles:
         rad = deg * math.pi / 180
         canvas.create_line(
@@ -155,6 +165,7 @@ def draw_corner_web(canvas, x0, y0, size=62, flip_x=False):
             fill=color, width=1,
         )
 
+    # Draw each ring by connecting the points where it crosses the spokes
     for r in radii:
         points = []
         for deg in angles:
@@ -321,6 +332,7 @@ class AdminDashboard:
             self._final_grade(g) for g in self.grades_records
             if g.get("student_id") == student_id
         ]
+        # Drop any grades that could not be calculated
         finals = [f for f in finals if f is not None]
         return round(sum(finals) / len(finals), 2) if finals else None
 
@@ -360,7 +372,7 @@ class AdminDashboard:
     # ------------------------------------------------------------------
 
     def _btn(self, parent, text, command, kind="pink"):
-        
+        # Creates a flat button: "pink" is the main action style, anything else is the dark secondary style
         if kind == "pink":
             bg, hover = MH_THEME["accent_pink"], MH_THEME["accent_pink_hover"]
         else:
@@ -410,10 +422,12 @@ class AdminDashboard:
             parent, columns=[c[0] for c in columns], show="headings",
             style="MH.Treeview", selectmode=selectmode,
         )
+        # Set the heading text, width and alignment for every column
         for key, heading, width, anchor in columns:
             tree.heading(key, text=heading)
             tree.column(key, width=width, anchor=anchor)
 
+        # Connect the scrollbar to the table so scrolling works both ways
         scroll = ttk.Scrollbar(parent, orient="vertical", command=tree.yview)
         tree.configure(yscrollcommand=scroll.set)
         tree.pack(side="left", fill="both", expand=True)
@@ -445,6 +459,7 @@ class AdminDashboard:
 
         self._btn(card.inner, "Clear", on_clear, "dark").pack(side="left")
         # Filter the table live as the user types in the search box
+        # Packed in reverse because side="right" stacks from the right edge inward
         for text, command, kind in reversed(actions):
             self._btn(card.inner, text, command, kind).pack(side="right", padx=(8, 0))
 
@@ -455,6 +470,7 @@ class AdminDashboard:
         if not selected:
             messagebox.showinfo(f"Select a {noun}", f"Please select a {noun.lower()} row first.")
             return None
+        # Row IDs (iid) were set to the record IDs, so the selection is the ID itself
         return selected[0]
 
     # ------------------------------------------------------------------
@@ -474,21 +490,25 @@ class AdminDashboard:
         except tk.TclError:
             pass
 
+        # Table body style (colors, row height, font)
         style.configure(
             "MH.Treeview", background=MH_THEME["bg_card"],
             foreground=MH_THEME["text_white"], fieldbackground=MH_THEME["bg_card"],
             rowheight=34, font=("Segoe UI", 10), borderwidth=0,
         )
+        # Table header row style
         style.configure(
             "MH.Treeview.Heading", background="#261A3B",
             foreground=MH_THEME["text_white"], font=("Segoe UI", 10, "bold"),
             relief="flat",
         )
+        # Selected rows turn hot pink
         style.map(
             "MH.Treeview",
             background=[("selected", MH_THEME["accent_pink"])],
             foreground=[("selected", MH_THEME["text_white"])],
         )
+        # Dropdown box style
         style.configure(
             "MH.TCombobox", fieldbackground=MH_THEME["bg_input"],
             background=MH_THEME["bg_input"], foreground=MH_THEME["text_white"],
@@ -521,6 +541,7 @@ class AdminDashboard:
 
         self._build_sidebar()
 
+        # content_host is where every section gets drawn and cleared
         self.content_host = tk.Frame(self.main_area, bg=MH_THEME["bg_black"])
         self.content_host.pack(fill="both", expand=True, padx=28, pady=22)
 
@@ -539,6 +560,7 @@ class AdminDashboard:
         try:
             logo_image = Image.open(LOGO_FILE)
             logo_image.thumbnail((160, 90))
+            # Keep a reference on self so Python doesn't garbage-collect the image
             self.logo_photo = ImageTk.PhotoImage(logo_image)
             tk.Label(brand_box, image=self.logo_photo, bg=MH_THEME["bg_sidebar"]).pack(anchor="w")
             logo_loaded = True
@@ -557,10 +579,12 @@ class AdminDashboard:
             fg=MH_THEME["accent_purple"], font=("Segoe UI", 8, "bold"), anchor="w",
         ).pack(fill="x", pady=(3, 0))
 
+        # Thin divider line under the branding
         tk.Frame(self.sidebar, bg=MH_THEME["border_purple"], height=1).pack(
             fill="x", padx=16, pady=(0, 14)
         )
 
+        # (section key, button text) for each sidebar tab
         nav_items = [
             ("dashboard", "❖  Dashboard"),
             ("students", "🎓  Manage Students"),
@@ -573,6 +597,7 @@ class AdminDashboard:
         for key, label in nav_items:
             btn = tk.Button(
                 self.sidebar, text=label,
+                # k=key locks in this loop's key so every button opens its own section
                 command=lambda k=key: self.show_section(k),
                 bg=MH_THEME["bg_sidebar"], fg=MH_THEME["text_white"],
                 activebackground=MH_THEME["bg_input"],
@@ -591,6 +616,7 @@ class AdminDashboard:
         draw_corner_web(web_canvas, 0, 0, size=62)
         draw_corner_web(web_canvas, 178, 0, size=62, flip_x=True)
 
+        # Logout button sits at the very bottom of the sidebar
         tk.Button(
             self.sidebar, text="⎋  Logout", command=self._logout,
             bg="#261426", fg=MH_THEME["text_white"],
@@ -647,6 +673,7 @@ class AdminDashboard:
                 side_pad = 28
             self.content_host.pack_configure(padx=side_pad)
         except tk.TclError:
+            # The widget may already be destroyed (for example during logout), so ignore the error
             pass
 
     def _clear_content(self):
@@ -663,6 +690,7 @@ class AdminDashboard:
         self._highlight_nav(section_key)
         self._clear_content()
 
+        # Map each section key to the method that draws it
         renderers = {
             "dashboard": self._render_home,
             "students": self._render_students,
@@ -677,12 +705,14 @@ class AdminDashboard:
 
     def _header(self, title, subtitle, action=None):
         """Top card on every section. action = (button text, command) or None."""
+        # Taller card when there is an action button so everything fits
         card = RoundedCard(
             self.content_host, radius=18, padding=18,
             height=144 if action else 104,
         )
         card.pack(fill="x", pady=(0, 20))
 
+        # Left side: title and subtitle
         left = tk.Frame(card.inner, bg=MH_THEME["bg_card"])
         left.pack(side="left", fill="both", expand=True)
 
@@ -695,6 +725,7 @@ class AdminDashboard:
             font=("Segoe UI", 10), anchor="w",
         ).pack(fill="x", pady=(4, 0))
 
+        # Right side: admin name, today's date and the optional action button
         right = tk.Frame(card.inner, bg=MH_THEME["bg_card"])
         right.pack(side="right", anchor="ne")
 
@@ -735,6 +766,7 @@ class AdminDashboard:
         stats_row.pack(fill="x", pady=(0, 22))
         stats_row.columnconfigure((0, 1, 2, 3), weight=1, uniform="stats")
 
+        # (label, number to show, accent color) for each stat card
         stats = [
             ("TOTAL STUDENTS", len(self.students), MH_THEME["accent_pink"]),
             ("TOTAL TEACHERS", len(self.teachers), MH_THEME["accent_purple"]),
@@ -749,6 +781,7 @@ class AdminDashboard:
         row.columnconfigure((0, 1, 2), weight=1, uniform="main_cards")
         row.rowconfigure(0, weight=1)
 
+        # (icon, title, description, button text, section to open, accent color)
         shortcuts = [
             ("🎓", "Manage Students", "Add, view, edit and delete students, and generate their reports.",
              "View Students", "students", MH_THEME["accent_purple"]),
@@ -783,6 +816,7 @@ class AdminDashboard:
                  font=("Trebuchet MS", 28, "bold"), anchor="w").pack(fill="x", pady=(4, 0))
 
     def _shortcut_card(self, parent, col, icon, title, desc, btn_text, section, accent):
+        # One of the three big home cards: icon, title, description and a button that opens a section
         card = RoundedCard(parent, border_color=accent, radius=20, padding=24)
         card.grid(row=0, column=col, padx=(0 if col == 0 else 8, 0 if col == 2 else 8), sticky="nsew")
 
@@ -800,11 +834,13 @@ class AdminDashboard:
     # ------------------------------------------------------------------
 
     def _render_students(self):
+        # Draws the Manage Students screen: header, search bar with buttons, and the students table
         self._header(
             "Manage Students", "Search, add, view, edit and delete student records.",
             action=("+ Add Student", self._render_student_form),
         )
 
+        # Search card holding the search box on the left and View/Edit/Delete on the right
         search_card = RoundedCard(self.content_host, radius=16, padding=14, height=74)
         search_card.pack(fill="x", pady=(0, 14))
 
@@ -816,6 +852,7 @@ class AdminDashboard:
         entry = self._entry(search_card.inner, self.student_search_var)
         entry.configure(width=28)
         entry.pack(side="left", ipady=5, padx=(0, 10))
+        # Re-filter the table every time a key is released
         entry.bind("<KeyRelease>", lambda _e: self._populate_student_table())
 
         self._btn(search_card.inner, "Clear", self._reset_student_search, "dark").pack(side="left")
@@ -824,6 +861,7 @@ class AdminDashboard:
         self._btn(search_card.inner, "Edit", self._edit_selected_student, "dark").pack(side="right", padx=8)
         self._btn(search_card.inner, "View", self._view_selected_student).pack(side="right")
 
+        # Card that holds the students table
         table_card = RoundedCard(self.content_host, radius=18, padding=14)
         table_card.pack(fill="both", expand=True)
 
@@ -835,15 +873,18 @@ class AdminDashboard:
             ("email", "Email", 210, "w"),
             ("average", "Average", 80, "center"),
         ])
+        # Double-clicking a row opens that student's detail page
         self.student_tree.bind("<Double-1>", lambda _e: self._view_selected_student())
 
         self._populate_student_table()
 
     def _reset_student_search(self):
+        # Clears the search box and shows all students again
         self.student_search_var.set("")
         self._populate_student_table()
 
     def _populate_student_table(self):
+        # Empty the table first so rows don't get duplicated
         for row in self.student_tree.get_children():
             self.student_tree.delete(row)
 
@@ -856,10 +897,12 @@ class AdminDashboard:
             gender = student.get("gender") or ""
             email = student.get("email") or ""
 
+            # Skip students that don't match the search text
             if query and query not in f"{sid} {name} {grade} {gender} {email}".lower():
                 continue
 
             avg = self._student_average(sid)
+            # iid=sid lets us find the student ID again from the selected row
             self.student_tree.insert(
                 "", "end", iid=sid,
                 values=(sid, name, grade, gender, email,
@@ -867,6 +910,7 @@ class AdminDashboard:
             )
 
     def _selected_student_id(self):
+        # Returns the selected student's ID, or warns the user if no row is selected
         selected = self.student_tree.selection()
         if not selected:
             messagebox.showinfo("Select a Student", "Please select a student row first.")
@@ -874,16 +918,19 @@ class AdminDashboard:
         return selected[0]
 
     def _view_selected_student(self):
+        # Opens the detail page for the selected student
         sid = self._selected_student_id()
         if sid:
             self._render_student_detail(sid)
 
     def _edit_selected_student(self):
+        # Opens the edit form filled in with the selected student's data
         sid = self._selected_student_id()
         if sid:
             self._render_student_form(self.student_lookup.get(sid))
 
     def _delete_selected_student(self):
+        # Asks for confirmation, deletes the selected student, then refreshes the list
         sid = self._selected_student_id()
         if not sid:
             return
@@ -896,6 +943,7 @@ class AdminDashboard:
 
         result = self.student_service.delete_student(sid)
 
+        # The service returns a message string; "successfully" means it worked
         if isinstance(result, str) and "successfully" in result.lower():
             messagebox.showinfo("Success", result)
             self.show_section("students")
@@ -904,17 +952,20 @@ class AdminDashboard:
 
     def _render_student_detail(self, student_id):
         """One student's information, grades and report controls, inside the dashboard."""
+        # Get the student record, or show an error and stop if it can't be found
         try:
             student = self.student_service.get_student_by_id(student_id)
         except Exception as err:
             messagebox.showerror("Student Not Found", f"Unable to retrieve student.\n\n{err}")
             return
 
+        # Get this student's grades (empty list if something goes wrong)
         try:
             student_grades = self.grade_service.get_grades_by_student(student_id)
         except Exception:
             student_grades = []
 
+        # Calculate the age from the date of birth
         try:
             age = self.student_service.calculate_student_age(student_id)
         except Exception:
@@ -940,6 +991,7 @@ class AdminDashboard:
                  fg=MH_THEME["text_white"], font=("Trebuchet MS", 13, "bold"),
                  anchor="w").pack(fill="x", pady=(0, 8))
 
+        # (label, value) pairs shown in the information card, with fallbacks for empty fields
         details = [
             ("Student ID", student.get("person_id", "")),
             ("Grade Level", student.get("grade_level", "")),
@@ -949,6 +1001,7 @@ class AdminDashboard:
             ("Date of Birth", student.get("date_of_birth") or "Not provided"),
             ("Age", age),
         ]
+        # Show each detail as a small purple label with its value underneath
         for label, value in details:
             tk.Label(info.inner, text=label.upper(), bg=MH_THEME["bg_card"],
                      fg=MH_THEME["accent_purple"], font=("Segoe UI", 8, "bold"),
@@ -961,6 +1014,7 @@ class AdminDashboard:
         right = tk.Frame(body, bg=MH_THEME["bg_black"])
         right.pack(side="left", fill="both", expand=True)
 
+        # Report controls card is packed to the bottom first so it always stays visible
         report_card = RoundedCard(right, border_color=MH_THEME["accent_pink"],
                                   radius=16, padding=14, height=78)
         report_card.pack(side="bottom", fill="x", pady=(12, 0))
@@ -972,6 +1026,7 @@ class AdminDashboard:
                  fg=MH_THEME["text_white"], font=("Trebuchet MS", 13, "bold"),
                  anchor="w").pack(fill="x", pady=(0, 8))
 
+        # Overall average text shown under the table (filled in below)
         overall_label = tk.Label(grades_card.inner, text="", bg=MH_THEME["bg_card"],
                                  fg=MH_THEME["accent_pink"], font=("Segoe UI", 10, "bold"),
                                  anchor="w")
@@ -980,6 +1035,7 @@ class AdminDashboard:
         table_frame = tk.Frame(grades_card.inner, bg=MH_THEME["bg_card"])
         table_frame.pack(fill="both", expand=True)
 
+        # selectmode="none" makes this table view-only
         tree = self._table(table_frame, [
             ("subject", "Subject", 170, "w"),
             ("period", "Year / Term", 140, "w"),
@@ -987,6 +1043,7 @@ class AdminDashboard:
             ("letter", "Grade", 60, "center"),
         ], selectmode="none")
 
+        # Add one row per grade and collect the final scores for the overall average
         finals = []
         for grade in student_grades:
             final_value = self._final_grade(grade)
@@ -999,6 +1056,7 @@ class AdminDashboard:
                 self._letter_grade(final_value),
             ))
 
+        # Show the overall average with its letter grade, or a message if there are no grades
         if finals:
             overall = round(sum(finals) / len(finals), 2)
             overall_label.config(text=f"Overall Average: {overall:.1f}%  ({self._letter_grade(overall)})")
@@ -1018,6 +1076,7 @@ class AdminDashboard:
         term_box = self._combo(report_card.inner, ["Term 1", "Term 2", "Term 3"], term_var, "normal")
         term_box.configure(width=10)
         term_box.pack(side="left", ipady=3, padx=(0, 10))
+        # Button that builds the PDF for this student using the year and term typed above
         self._btn(
             report_card.inner, "Generate PDF Report",
             lambda: self._generate_report(student_id, year_var.get().strip(), term_var.get().strip()),
@@ -1025,6 +1084,7 @@ class AdminDashboard:
 
     def _render_student_form(self, student=None):
         """Add form (student=None) or edit form, shown inside the dashboard."""
+        # editing is True when an existing student was passed in
         editing = student is not None
         s = student or {}
 
@@ -1041,10 +1101,12 @@ class AdminDashboard:
         card = RoundedCard(self.content_host, border_color=MH_THEME["accent_pink"], padding=22)
         card.pack(fill="x")
 
+        # Two-column grid that holds all the form fields
         form = tk.Frame(card.inner, bg=MH_THEME["bg_card"])
         form.pack(fill="x")
         form.columnconfigure((0, 1), weight=1, uniform="f")
 
+        # One StringVar per field, pre-filled with the student's data when editing
         v = {
             "first": tk.StringVar(value=s.get("first_name", "")),
             "last": tk.StringVar(value=s.get("last_name", "")),
@@ -1066,10 +1128,12 @@ class AdminDashboard:
         self._field(form, "Date of Birth (YYYY-MM-DD)", lambda b: self._entry(b, v["dob"]), 3, 0)
 
         def save():
+            # Read the form values and trim extra spaces
             first = v["first"].get().strip()
             last = v["last"].get().strip()
             grade_text = v["grade"].get().strip()
 
+            # Required fields must be filled in
             if not first or not last or not grade_text:
                 messagebox.showwarning(
                     "Missing Information",
@@ -1077,12 +1141,14 @@ class AdminDashboard:
                 )
                 return
 
+            # Grade level must be a whole number
             try:
                 grade_level = int(grade_text)
             except ValueError:
                 messagebox.showerror("Invalid Grade", "Please select a valid grade level.")
                 return
 
+            # Date of birth is optional, but if given it must be a valid YYYY-MM-DD date
             dob = None
             dob_text = v["dob"].get().strip()
             if dob_text:
@@ -1095,10 +1161,12 @@ class AdminDashboard:
                     )
                     return
 
+            # Optional fields become None when left empty
             email = v["email"].get().strip() or None
             gender = v["gender"].get().strip() or None
             parent = v["parent"].get().strip() or None
 
+            # Update the existing student, or add a new one; success is the message we expect back
             if editing:
                 result = self.student_service.update_student(
                     s.get("person_id"),
@@ -1116,6 +1184,7 @@ class AdminDashboard:
                 )
                 success = "Student added successfully."
 
+            # Any other message from the service is treated as an error
             if result != success:
                 messagebox.showerror("Unable to Save", str(result))
                 return
@@ -1133,6 +1202,7 @@ class AdminDashboard:
     # ------------------------------------------------------------------
 
     def _render_teachers(self):
+        # Draws the Manage Teachers screen: header, search toolbar, and the teachers table
         self._header(
             "Manage Teachers", "Search, add, edit and delete teacher records.",
             action=("+ Add Teacher", self._render_teacher_form),
@@ -1157,15 +1227,18 @@ class AdminDashboard:
             ("email", "Email", 220, "w"),
             ("assigned", "Assigned Subjects", 260, "w"),
         ])
+        # Double-clicking a row opens the edit form
         self.teacher_tree.bind("<Double-1>", lambda _e: self._edit_selected_teacher())
 
         self._populate_teacher_table()
 
     def _reset_teacher_search(self):
+        # Clears the search box and shows all teachers again
         self.teacher_search_var.set("")
         self._populate_teacher_table()
 
     def _populate_teacher_table(self):
+        # Empty the table first so rows don't get duplicated
         for row in self.teacher_tree.get_children():
             self.teacher_tree.delete(row)
 
@@ -1176,12 +1249,14 @@ class AdminDashboard:
             name = self._person_name(teacher)
             email = teacher.get("email") or ""
             specialty = teacher.get("subject_taught") or ""
+            # Find every subject that is assigned to this teacher
             taught = [
                 s.get("subject_name", "") for s in self.subjects
                 if s.get("teacher_id") == tid
             ]
             assigned = ", ".join(taught) if taught else "None assigned"
 
+            # Skip teachers that don't match the search text
             if query and query not in f"{tid} {name} {email} {specialty} {assigned}".lower():
                 continue
 
@@ -1191,11 +1266,13 @@ class AdminDashboard:
             )
 
     def _edit_selected_teacher(self):
+        # Opens the edit form for the selected teacher
         tid = self._selected_id(self.teacher_tree, "Teacher")
         if tid:
             self._render_teacher_form(self.teacher_lookup.get(tid))
 
     def _delete_selected_teacher(self):
+        # Confirms and deletes the selected teacher, warning if they still have subjects assigned
         tid = self._selected_id(self.teacher_tree, "Teacher")
         if not tid:
             return
@@ -1218,6 +1295,7 @@ class AdminDashboard:
 
     def _render_teacher_form(self, teacher=None):
         """Add form (teacher=None) or edit form, shown inside the dashboard."""
+        # editing is True when an existing teacher was passed in
         editing = teacher is not None
         t = teacher or {}
 
@@ -1238,6 +1316,7 @@ class AdminDashboard:
         form.pack(fill="x")
         form.columnconfigure((0, 1), weight=1, uniform="f")
 
+        # One StringVar per field, pre-filled with the teacher's data when editing
         v = {
             "first": tk.StringVar(value=t.get("first_name", "")),
             "last": tk.StringVar(value=t.get("last_name", "")),
@@ -1254,6 +1333,7 @@ class AdminDashboard:
         self._field(form, "Date of Birth (YYYY-MM-DD)", lambda b: self._entry(b, v["dob"]), 2, 0)
 
         def save():
+            # Read the names and make sure both were filled in
             first = v["first"].get().strip()
             last = v["last"].get().strip()
 
@@ -1264,6 +1344,7 @@ class AdminDashboard:
                 )
                 return
 
+            # Date of birth is optional, but if given it must be a valid YYYY-MM-DD date
             dob = None
             dob_text = v["dob"].get().strip()
             if dob_text:
@@ -1276,9 +1357,11 @@ class AdminDashboard:
                     )
                     return
 
+            # Optional fields become None when left empty
             email = v["email"].get().strip() or None
             gender = v["gender"].get().strip() or None
 
+            # Update the existing teacher, or add a new one; success is the message we expect back
             if editing:
                 result = self.teacher_service.update_teacher(
                     self._teacher_id(t),
@@ -1294,6 +1377,7 @@ class AdminDashboard:
                 )
                 success = "Teacher added successfully."
 
+            # Any other message from the service is treated as an error
             if result != success:
                 messagebox.showerror("Unable to Save", str(result))
                 return
@@ -1311,6 +1395,7 @@ class AdminDashboard:
     # ------------------------------------------------------------------
 
     def _render_subjects(self):
+        # Draws the Manage Subjects screen: header, search toolbar, and the subjects table
         self._header(
             "Manage Subjects", "Search, add, edit and delete academy subjects.",
             action=("+ Add Subject", self._render_subject_form),
@@ -1335,15 +1420,18 @@ class AdminDashboard:
             ("teacher", "Assigned Teacher", 220, "w"),
             ("grades", "Grades Recorded", 130, "center"),
         ])
+        # Double-clicking a row opens the edit form
         self.subject_tree.bind("<Double-1>", lambda _e: self._edit_selected_subject())
 
         self._populate_subject_table()
 
     def _reset_subject_search(self):
+        # Clears the search box and shows all subjects again
         self.subject_search_var.set("")
         self._populate_subject_table()
 
     def _populate_subject_table(self):
+        # Empty the table first so rows don't get duplicated
         for row in self.subject_tree.get_children():
             self.subject_tree.delete(row)
 
@@ -1354,20 +1442,24 @@ class AdminDashboard:
             name = subject.get("subject_name", "")
             teacher = self._teacher_name(subject.get("teacher_id"))
 
+            # Skip subjects that don't match the search text
             if query and query not in f"{sid} {name} {teacher}".lower():
                 continue
 
+            # Count how many grade records belong to this subject
             count = sum(1 for g in self.grades_records if g.get("subject_id") == sid)
             self.subject_tree.insert(
                 "", "end", iid=sid, values=(sid, name, teacher, count),
             )
 
     def _edit_selected_subject(self):
+        # Opens the edit form for the selected subject
         sid = self._selected_id(self.subject_tree, "Subject")
         if sid:
             self._render_subject_form(self.subject_lookup.get(sid))
 
     def _delete_selected_subject(self):
+        # Confirms and deletes the selected subject, warning if it already has grades recorded
         sid = self._selected_id(self.subject_tree, "Subject")
         if not sid:
             return
@@ -1390,6 +1482,7 @@ class AdminDashboard:
 
     def _render_subject_form(self, subject=None):
         """Add form (subject=None) or edit form, shown inside the dashboard."""
+        # editing is True when an existing subject was passed in
         editing = subject is not None
         sub = subject or {}
 
@@ -1438,6 +1531,7 @@ class AdminDashboard:
             subject_name = name_var.get().strip()
             teacher_id = self._choice_id(teacher_var.get())
 
+            # The chosen teacher must be one of the real options in the dropdown
             valid_ids = {self._choice_id(c) for c in teacher_choices}
             if not subject_name or teacher_id not in valid_ids:
                 messagebox.showwarning(
@@ -1446,6 +1540,7 @@ class AdminDashboard:
                 )
                 return
 
+            # Update the existing subject, or add a new one; success is the message we expect back
             if editing:
                 result = self.subject_service.update_subject(
                     sub.get("subject_id"),
@@ -1456,6 +1551,7 @@ class AdminDashboard:
                 result = self.subject_service.add_subject(subject_name, teacher_id)
                 success = "Subject added successfully."
 
+            # Any other message from the service is treated as an error
             if result != success:
                 messagebox.showerror("Unable to Save", str(result))
                 return
@@ -1473,6 +1569,7 @@ class AdminDashboard:
     # ------------------------------------------------------------------
 
     def _render_grades(self):
+        # Draws the Manage Grades screen: an entry form on top and a table of all grades below
         self._header(
             "Manage Grades",
             "Enter and update coursework, project, midterm, and final exam grades.",
@@ -1482,10 +1579,12 @@ class AdminDashboard:
                                 radius=18, padding=18)
         form_card.pack(fill="x", pady=(0, 14))
 
+        # Six-column grid so fields can be different widths using columnspan
         grid = tk.Frame(form_card.inner, bg=MH_THEME["bg_card"])
         grid.pack(fill="x", pady=(0, 8))
         grid.columnconfigure((0, 1, 2, 3, 4, 5), weight=1, uniform="g")
 
+        # Dropdown options formatted as "ID - Name"
         student_choices = [
             f"{s.get('person_id')} - {self._student_name(s.get('person_id'))}"
             for s in self.students
@@ -1496,6 +1595,7 @@ class AdminDashboard:
         ]
         default_year, default_term = self._default_year_and_term()
 
+        # Form variables are stored on self because other methods read and update them
         self.g_student = tk.StringVar(value=student_choices[0] if student_choices else "")
         self.g_subject = tk.StringVar(value=subject_choices[0] if subject_choices else "")
         self.g_year = tk.StringVar(value=default_year)
@@ -1510,9 +1610,11 @@ class AdminDashboard:
         self._field(grid, "Academic Term",
                     lambda b: self._combo(b, ["Term 1", "Term 2", "Term 3"], self.g_term, "normal"), 1, 1)
 
+        # One input box for each of the four scores
         score_labels = [("coursework", "Coursework"), ("project", "Project"),
                         ("midterm", "Midterm"), ("final_exam", "Final Exam")]
         for i, (key, title) in enumerate(score_labels):
+            # k=key locks in this loop's key for each entry box
             self._field(grid, f"{title} (0-100)",
                         lambda b, k=key: self._entry(b, self.g_scores[k]), 1, i + 2)
 
@@ -1528,6 +1630,7 @@ class AdminDashboard:
         self._btn(buttons, "Clear Scores", self._clear_score_inputs, "dark").pack(side="left", padx=(10, 0))
         self._btn(buttons, "Delete Selected Grade", self._delete_selected_grade, "dark").pack(side="right")
 
+        # Table listing every saved grade record
         list_card = RoundedCard(self.content_host, radius=18, padding=14)
         list_card.pack(fill="both", expand=True)
 
@@ -1543,11 +1646,13 @@ class AdminDashboard:
             ("final", "Final", 70, "center"),
             ("letter", "Grade", 50, "center"),
         ])
+        # Clicking a row copies that grade into the form above so it can be edited
         self.grades_tree.bind("<<TreeviewSelect>>", self._on_grade_row_selected)
 
         self._refresh_grades_table()
 
     def _find_existing_grade(self):
+        # Looks for a saved grade matching the student, subject, year and term chosen in the form
         student_id = self._choice_id(self.g_student.get())
         subject_id = self._choice_id(self.g_subject.get())
         year = self.g_year.get().strip()
@@ -1564,10 +1669,12 @@ class AdminDashboard:
         return None
 
     def _clear_score_inputs(self):
+        # Empties all four score boxes
         for var in self.g_scores.values():
             var.set("")
 
     def _load_existing_scores(self):
+        # Fills the score boxes with saved scores if a matching grade exists, otherwise clears them
         match = self._find_existing_grade()
         if match:
             for key, var in self.g_scores.items():
@@ -1576,6 +1683,7 @@ class AdminDashboard:
             self._clear_score_inputs()
 
     def _save_grades(self):
+        # Validates the form, then adds a new grade or updates the existing one
         student_id = self._choice_id(self.g_student.get())
         subject_id = self._choice_id(self.g_subject.get())
         year = self.g_year.get().strip()
@@ -1592,6 +1700,7 @@ class AdminDashboard:
                   "midterm": "Midterm", "final_exam": "Final Exam"}
         scores = {}
 
+        # Each score must be a number from 0 to 100
         for key, label in labels.items():
             try:
                 number = float(self.g_scores[key].get().strip())
@@ -1601,10 +1710,12 @@ class AdminDashboard:
             if number < 0 or number > 100:
                 messagebox.showerror("Out of Range", f"{label} must be between 0 and 100.")
                 return
+            # Keep whole numbers as int and round decimals to one place
             scores[key] = round(number, 1) if number % 1 else int(number)
 
         existing = self._find_existing_grade()
 
+        # Update if this grade already exists, otherwise add a new record
         if existing:
             result = self.grade_service.update_grade(existing.get("grade_id"), scores)
             success = "Grade updated successfully."
@@ -1620,6 +1731,7 @@ class AdminDashboard:
             messagebox.showerror("Unable to Save", str(result))
             return
 
+        # Reload the data so the table shows the new or updated grade
         self._load_data()
         self._refresh_grades_table()
         messagebox.showinfo(
@@ -1628,6 +1740,7 @@ class AdminDashboard:
         )
 
     def _refresh_grades_table(self):
+        # Rebuilds the grades table from the latest records
         for row in self.grades_tree.get_children():
             self.grades_tree.delete(row)
 
@@ -1648,6 +1761,7 @@ class AdminDashboard:
             )
 
     def _on_grade_row_selected(self, _event):
+        # When a table row is clicked, copy its values into the form so the grade can be edited
         selected = self.grades_tree.selection()
         if not selected:
             return
@@ -1688,6 +1802,7 @@ class AdminDashboard:
 
         result = self.grade_service.delete_grade(grade_id)
 
+        # On success, reload the data, refresh the table and clear the score boxes
         if isinstance(result, str) and "successfully" in result.lower():
             self._load_data()
             self._refresh_grades_table()
@@ -1736,6 +1851,7 @@ class AdminDashboard:
 
         buttons = tk.Frame(card.inner, bg=MH_THEME["bg_card"])
         buttons.pack(fill="x", pady=(14, 0))
+        # Button sends the chosen student ID, year and term to _generate_report
         self._btn(
             buttons, "Generate PDF Report",
             lambda: self._generate_report(
