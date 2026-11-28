@@ -1,4 +1,3 @@
-
 from repositories.teacher_repository import TeacherRepository
 from models.teacher import Teacher
 from datetime import date
@@ -49,8 +48,12 @@ class TeacherService:
                 if email and ("@" not in email or "." not in email.split("@")[-1]):
                     raise ValueError("Please enter a valid email address.")
 
-            if not isinstance(subject_taught, str) or not subject_taught.strip():
-                raise ValueError("Subject taught cannot be empty.")
+            # Subject taught is optional (subjects are assigned in Manage Subjects)
+            if subject_taught is not None:
+                if not isinstance(subject_taught, str):
+                    raise ValueError("Subject taught must be text.")
+
+                subject_taught = subject_taught.strip() or None
 
             if gender is not None:
                 if not isinstance(gender, str):
@@ -73,7 +76,7 @@ class TeacherService:
                 last_name.strip(),
                 email,
                 gender,
-                subject_taught.strip(),
+                subject_taught,
                 date_of_birth=date_of_birth
             )
 
@@ -153,10 +156,10 @@ class TeacherService:
             if "subject_taught" in update_data:
                 subject = update_data["subject_taught"]
 
-                if not isinstance(subject, str) or not subject.strip():
-                    raise ValueError("Subject taught cannot be empty.")
+                if subject is not None and not isinstance(subject, str):
+                    raise ValueError("Subject taught must be text.")
 
-                update_data["subject_taught"] = subject.strip()
+                update_data["subject_taught"] = subject.strip() or None if subject else None
 
             if "gender" in update_data:
                 gender = update_data["gender"]

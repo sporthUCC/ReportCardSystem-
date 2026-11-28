@@ -1,22 +1,62 @@
 [
     {
         "person_id": "STU001",
-        "first_name": "Elivira",
-        "last_name": "Graves",
-        "email": "elivira.graves@gmail.com",
+        "first_name": "Draculaura",
+        "last_name": "Valentine",
+        "email": "draculaura.valentine@mha.monsterhighacademy.edu.com",
         "date_of_birth": "2002-01-01",
         "gender": "Female",
-        "grade_level": 8,
-        "parent_contact": "8767834567"
+        "grade_level": 10,
+        "parent_contact": "8769994444"
     },
     {
         "person_id": "STU002",
-        "first_name": "Jason",
-        "last_name": "Brown",
-        "email": "Jasonbrown@gmail.com",
-        "date_of_birth": "2006-06-21",
-        "gender": "Male",
+        "first_name": "Clawdeen",
+        "last_name": "Wolf",
+        "email": "clawdeen.wolf@mha.monsterhighacademy.edu.com",
+        "date_of_birth": "2013-01-01",
+        "gender": "Female",
         "grade_level": 8,
-        "parent_contact": "876 456-1837"
+        "parent_contact": "8768880000"
+    },
+    {
+        "person_id": "STU003",
+        "first_name": "Frankie",
+        "last_name": "Stein",
+        "email": "frankie.stein@mha.monsterhighacademy.edu.com",
+        "date_of_birth": "2012-09-02",
+        "gender": "Female",
+        "grade_level": 9,
+        "parent_contact": null
+    },
+    {
+        "person_id": "STU004",
+        "first_name": "Cleo",
+        "last_name": "De Nile",
+        "email": "cleo.denile@mha.monsterhighacademy.edu.com",
+        "date_of_birth": "2011-06-01",
+        "gender": "Female",
+        "grade_level": 10,
+        "parent_contact": "8768907777"
+    },
+    {
+        "person_id": "STU005",
+        "first_name": "Heat",
+        "last_name": "Burns",
+        "email": "heath.burns@mha.monsterhighacademy.edu.com",
+        "date_of_birth": "2009-01-02",
+        "gender": "Male",
+        "grade_level": 11,
+        "parent_contact": "3457891212"
+    },
+    {
+        "person_id": "STU006",
+        "first_name": "Venus",
+        "last_name": "McFlytrap",
+        "email": "venus.mcflytrap@mha.monsterhighacademy.edu.com",
+        "date_of_birth": "2012-01-01",
+        "gender": "Male",
+        "grade_level": 9,
+        "parent_contact": "9094443232"
     }
 ]

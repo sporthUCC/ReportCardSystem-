@@ -7,7 +7,7 @@ class TeacherRepository:
         self.storage = JSONStorage(TEACHER_FILE)
     
     def get_all_teachers(self):
-      return self.storage.load_data()
+        return self.storage.load_data()
 
     def add_teacher(self, teacher):
         """Adds a new teacher to the storage."""
@@ -24,7 +24,7 @@ class TeacherRepository:
         #convert the date object to a string before saving 
         
         if teacher_data["date_of_birth"] is not None:
-                    teacher_data["date_of_birth"] = teacher_data["date_of_birth"].isoformat()
+            teacher_data["date_of_birth"] = teacher_data["date_of_birth"].isoformat()
                     
         # Check for duplicate student information            
         for existing_teacher in teachers:
@@ -72,6 +72,14 @@ class TeacherRepository:
                 if "subject_taught" in update_data:
                     teacher_data["subject_taught"] = update_data["subject_taught"]
 
+                # Update the teacher's gender if provided
+                if "gender" in update_data:
+                    teacher_data["gender"] = update_data["gender"]
+
+                # Update the teacher's date of birth if provided
+                if "date_of_birth" in update_data:
+                    teacher_data["date_of_birth"] = update_data["date_of_birth"]
+
                 # Save the updated teacher records
                 self.storage.save_data(teachers)
                 return True
@@ -105,4 +113,3 @@ class TeacherRepository:
 
         # Return None if there are no matching teachers
         return None
-    

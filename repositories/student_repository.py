@@ -60,39 +60,32 @@ class StudentRepository:
         for student_data in students:
             if student_data["person_id"] == student_id:
 
-                # Update the student's first name if provided
                 if "first_name" in update_data:
                     student_data["first_name"] = update_data["first_name"]
 
-                # Update the student's last name if provided
                 if "last_name" in update_data:
                     student_data["last_name"] = update_data["last_name"]
 
-                # Update the student's grade level if provided
                 if "grade_level" in update_data:
                     student_data["grade_level"] = update_data["grade_level"]
 
-                # Update the parent's contact if provided
+                if "gender" in update_data:
+                    student_data["gender"] = update_data["gender"]
+
                 if "parent_contact" in update_data:
                     student_data["parent_contact"] = update_data["parent_contact"]
-                
-                #update email 
-                
-                # Update the student's email if provided
+
                 if "email" in update_data:
                     student_data["email"] = update_data["email"]
 
                 if "date_of_birth" in update_data:
                     dob = update_data["date_of_birth"]
                     student_data["date_of_birth"] = dob.isoformat() if dob else None
-                # Save the updated student records
-                self.storage.save_data(students)
 
+                self.storage.save_data(students)
                 return True
 
-        # Return False if the student was not found
         return False
-                    
     
     def delete_student(self, student_id):
         #loading all student records

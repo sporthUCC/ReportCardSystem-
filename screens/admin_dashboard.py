@@ -6,14 +6,16 @@ grades, reports) is drawn inside the same window. There are no separate screen
 files and no popup windows. Add, edit and view forms open right inside the
 dashboard with a Back button.
 """
-
+# Standard library imports for math calculations, Tkinter GUI widgets, and dates
 import math
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime, date
 
+# Pillow library for loading and resizing the Monster High school logo image
 from PIL import Image, ImageTk
 
+# Application theme colors, logo path, administrator model, backend services, and PDF export utility
 from config.settings import THEME, LOGO_FILE
 from models.administrator import Administrator
 from services.admin_service import AdminService
@@ -24,6 +26,13 @@ from services.grade_service import GradeService
 from services.report_service import ReportService
 from utils.pdf_generator import PDFGenerator
 
+
+"""
+Monster High color palette used across the dashboard UI.
+Pulls core shades from config.settings.THEME where available and falls back
+to hardcoded dark-purple and hot-pink hex values so the screen still renders
+properly even if a setting key is missing.
+"""
 
 MH_THEME = {
     "bg_black": THEME.get("bg_root", "#0D0B12"),
@@ -45,7 +54,13 @@ class RoundedCard(tk.Canvas):
     def __init__(self, parent, bg_color=MH_THEME["bg_card"],
                  border_color=MH_THEME["border_purple"], radius=18,
                  border_width=2, padding=18, **kwargs):
+        """
+        Sets up a custom Canvas-based rounded card with an inner Frame so regular
+        Tkinter widgets can sit inside a rounded border without getting clipped.
+        """
         self._fixed_height = "height" in kwargs
+        # Match the canvas background to the parent container so the outer corners look transparent
+        parent_bg = kwargs.pop("bg", parent.cget("bg"))
         parent_bg = kwargs.pop("bg", parent.cget("bg"))
         super().__init__(parent, bg=parent_bg, highlightthickness=0, bd=0, **kwargs)
 
@@ -59,16 +74,25 @@ class RoundedCard(tk.Canvas):
         self._window_id = self.create_window(
             self.padding, self.padding, window=self.inner, anchor="nw"
         )
+        # Redraw the card whenever the outer canvas or inner content changes size
         self.bind("<Configure>", self._on_resize)
         self.inner.bind("<Configure>", self._on_inner_resize)
 
     def _on_inner_resize(self, event):
+        """
+        When no fixed height was given, automatically grow or shrink the card
+        to wrap whatever widgets are packed inside self.inner plus top/bottom padding.
+        """
         if not self._fixed_height:
             needed_h = event.height + self.padding * 2
             if self.winfo_reqheight() != needed_h:
                 self.configure(height=needed_h)
 
     def _round_rect_points(self, x1, y1, x2, y2, r):
+        """
+        Calculates the corner points needed to draw a rounded rectangle.
+        Clamps the radius so the corners don't overlap if the card gets small.
+        """
         r = max(2, min(r, (x2 - x1) // 2, (y2 - y1) // 2))
         return [
             x1 + r, y1, x2 - r, y1, x2, y1, x2, y1 + r,
@@ -76,11 +100,21 @@ class RoundedCard(tk.Canvas):
             x1, y2, x1, y2 - r, x1, y1 + r, x1, y1,
         ]
 
+
+
     def _on_resize(self, event):
+        """
+        Redraws the rounded card background whenever the widget changes size,
+        and resizes the inner frame so the widgets inside fit neatly within the padding.
+        """
+        
+        # Keep a minimum size so the rounded corners don't collapse when the window is tiny
         w = max(event.width, 40)
         h = max(event.height, 40)
-
+        
+        # Remove the old card shape before drawing the updated one
         self.delete("card_shape")
+        # Pull the border in by half its width so the edges don't get cut off
         inset = self.border_width / 2
         points = self._round_rect_points(inset, inset, w - inset, h - inset, self.radius)
 
@@ -88,12 +122,14 @@ class RoundedCard(tk.Canvas):
             points, smooth=True, fill=self.bg_color,
             outline=self.border_color, width=self.border_width, tags="card_shape",
         )
+        # Send the background shape behind self.inner so it never covers the widgets
         self.tag_lower("card_shape")
-
+        # Stretch the inner frame to match the card's new width minus left/right padding
         self.itemconfigure(
             self._window_id,
             width=max(w - self.padding * 2, 20),
         )
+        # Only lock the inner height if the card was given a fixed height; otherwise let it auto-fit
         if self._fixed_height:
             self.itemconfigure(
                 self._window_id,
@@ -128,10 +164,19 @@ def draw_corner_web(canvas, x0, y0, size=62, flip_x=False):
 
 
 class AdminDashboard:
-
+    """
+    Main Administrator Dashboard for Monster High Academy.
+    Gives admins full control over students, teachers, subjects, grades,
+    and PDF report card generation from one central window.
+    """
+    # Caps how wide the main content area stretches on large monitors so cards don't look overly wide
     MAX_CONTENT_WIDTH = 1000
 
     def __init__(self, root, administrator=None, auth_service=None, on_logout=None):
+        """
+        Initializes the dashboard window, wires up all backend services,
+        loads the initial records, and opens on the home dashboard screen.
+        """
         self.root = root
         self.auth_service = auth_service
         self.on_logout = on_logout
@@ -144,7 +189,10 @@ class AdminDashboard:
             )
         self.administrator = administrator
 
-        # services
+        """
+        Initialize all backend services and pass their required dependencies
+        (for example, SubjectService needs TeacherService, and GradeService needs both).
+        """
         self.student_service = StudentService()
         self.teacher_service = TeacherService()
         self.subject_service = SubjectService(self.teacher_service)
@@ -158,7 +206,7 @@ class AdminDashboard:
             self.grade_service, self.report_service,
         )
 
-        # data filled by _load_data()
+        # Lists and ID-keyed lookup dictionaries populated when _load_data() runs
         self.students = []
         self.teachers = []
         self.subjects = []
@@ -167,17 +215,18 @@ class AdminDashboard:
         self.teacher_lookup = {}
         self.subject_lookup = {}
         self.grade_lookup = {}
-
+        # Track how many PDFs are exported in this session and store sidebar button references
         self.reports_generated = 0   # counted for this session only
         self.nav_buttons = {}
+        self._logging_out = False
         self.active_tab = "dashboard"
-
+        # Configure the main Tkinter window title, default size, minimum bounds, and dark background
         self.root.title("Monster High Academy | Administrator Dashboard")
         self.root.geometry("1180x740")
         self.root.minsize(980, 640)
         self.root.resizable(True, True)
         self.root.configure(bg=MH_THEME["bg_black"])
-
+        # Pull initial records from disk, apply dark Monster High styles, build the UI, and show home
         self._load_data()
         self._configure_styles()
         self._build_layout()
@@ -188,20 +237,28 @@ class AdminDashboard:
     # ------------------------------------------------------------------
 
     def _load_data(self):
-        """Loads the latest records from the services."""
+        """
+        Pulls all students, teachers, subjects, and grades from the services
+        and builds ID lookup dictionaries so we can turn IDs into names fast.
+        """
         try:
+            # Grab the latest records from each service (defaulting to an empty list if None comes back)
             self.students = self.student_service.get_all_students() or []
             self.teachers = self.teacher_service.get_all_teachers() or []
             self.subjects = self.subject_service.get_all_subjects() or []
             self.grades_records = self.grade_service.get_all_grades() or []
         except Exception as err:
+            # Show a popup error and reset everything to empty lists so the UI doesn't crash
             messagebox.showerror(
                 "Loading Error",
                 f"Unable to load dashboard information.\n\n{err}",
             )
             self.students, self.teachers = [], []
             self.subjects, self.grades_records = [], []
-
+        """
+        Map each record by its unique ID so tables and dropdowns can look up
+        names and details right away instead of searching the lists every time.
+        """
         self.student_lookup = {s.get("person_id"): s for s in self.students}
         self.teacher_lookup = {self._teacher_id(t): t for t in self.teachers}
         self.subject_lookup = {s.get("subject_id"): s for s in self.subjects}
@@ -213,33 +270,40 @@ class AdminDashboard:
 
     @staticmethod
     def _person_name(record):
+        # Join first and last name from a student or teacher dictionary cleanly
         return f"{record.get('first_name', '')} {record.get('last_name', '')}".strip()
 
     @staticmethod
     def _teacher_id(teacher):
+        # Teacher records might store their ID under person_id or teacher_id depending on how they were saved
         return teacher.get("person_id") or teacher.get("teacher_id")
 
     def _student_name(self, student_id):
+        # Turn a student ID into their full name, or fall back to showing the ID itself
         student = self.student_lookup.get(student_id)
         return self._person_name(student) if student else (student_id or "")
 
     def _teacher_name(self, teacher_id):
+        # Handle subjects with no teacher assigned yet vs. an ID that no longer exists
         if not teacher_id:
             return "Unassigned"
         teacher = self.teacher_lookup.get(teacher_id)
         return self._person_name(teacher) if teacher else "Teacher not found"
 
     def _subject_name(self, subject_id):
+        # Turn a subject ID into its subject name, or fall back to the ID if missing
         subject = self.subject_lookup.get(subject_id)
         return subject.get("subject_name", subject_id) if subject else (subject_id or "")
 
     def _final_grade(self, grade):
+        # Ask GradeService to compute the weighted final percentage for one grade record
         try:
             return self.grade_service.calculate_final_grade(grade)
         except Exception:
             return None
 
     def _letter_grade(self, final_grade):
+        # Convert a numeric final score into a letter grade (A-F) using GradeService
         if final_grade is None:
             return ""
         try:
@@ -249,6 +313,10 @@ class AdminDashboard:
             return ""
 
     def _student_average(self, student_id):
+        """
+        Collects all valid weighted final grades for one student across their
+        subjects and returns the overall average rounded to 2 decimal places (or None).
+        """
         finals = [
             self._final_grade(g) for g in self.grades_records
             if g.get("student_id") == student_id
@@ -257,12 +325,17 @@ class AdminDashboard:
         return round(sum(finals) / len(finals), 2) if finals else None
 
     def _default_year_and_term(self):
+        """
+        Pre-fills the grade and report forms with the academic year and term from
+        the most recently saved grade, or calculates the current school year if none exist.
+        """
         if self.grades_records:
             last = self.grades_records[-1]
             year, term = last.get("academic_year"), last.get("academic_term")
             if year and term:
                 return str(year), str(term)
-
+        # School years start in August, so Aug-Dec counts toward the upcoming school year
+        today = datetime.now()
         today = datetime.now()
         if today.month >= 8:
             year = f"{today.year}-{today.year + 1}"
@@ -272,11 +345,11 @@ class AdminDashboard:
 
     @staticmethod
     def _choice_id(text):
-        """'S001 - Draculaura' -> 'S001'"""
+        # Pull just the ID prefix from the left side of a dropdown choice string
         return text.split(" - ", 1)[0].strip() if " - " in text else ""
 
     def _teacher_choices(self):
-        """Dropdown entries for teachers: 'T001 - Name'."""
+        # Build a list of formatted "ID - Full Name" options for teacher assignment dropdowns
         return [
             f"{self._teacher_id(t)} - {self._person_name(t)}"
             for t in self.teachers if self._teacher_id(t)
@@ -287,6 +360,7 @@ class AdminDashboard:
     # ------------------------------------------------------------------
 
     def _btn(self, parent, text, command, kind="pink"):
+        
         if kind == "pink":
             bg, hover = MH_THEME["accent_pink"], MH_THEME["accent_pink_hover"]
         else:
@@ -299,12 +373,14 @@ class AdminDashboard:
         )
 
     def _label(self, parent, text):
+        # Creates a consistent muted-lavender form field label on top of card backgrounds
         return tk.Label(
             parent, text=text, bg=MH_THEME["bg_card"], fg=MH_THEME["text_muted"],
             font=("Segoe UI", 9, "bold"), anchor="w",
         )
 
     def _entry(self, parent, var):
+        # Creates a flat dark-purple text input box bound to a Tkinter StringVar
         return tk.Entry(
             parent, textvariable=var, bg=MH_THEME["bg_input"],
             fg=MH_THEME["text_white"], insertbackground=MH_THEME["accent_pink"],
@@ -312,13 +388,14 @@ class AdminDashboard:
         )
 
     def _combo(self, parent, values, var, state="readonly"):
+        # Creates a Monster High themed dropdown box (readonly by default so users pick valid options)
         return ttk.Combobox(
             parent, values=values, textvariable=var, state=state,
             style="MH.TCombobox",
         )
 
     def _field(self, parent, label, make, row, col, span=1):
-        """A label plus an input widget placed on a grid. Returns the widget."""
+        # Wraps a label and an input widget (created via the `make` factory function) inside one grid cell
         box = tk.Frame(parent, bg=MH_THEME["bg_card"])
         box.grid(row=row, column=col, columnspan=span, padx=6, pady=6, sticky="ew")
         self._label(box, label).pack(fill="x")
@@ -328,6 +405,7 @@ class AdminDashboard:
 
     def _table(self, parent, columns, selectmode="browse"):
         """columns = [(key, heading, width, anchor), ...]. Returns the Treeview."""
+        # Builds a styled Treeview table paired with a vertical scrollbar inside the given container
         tree = ttk.Treeview(
             parent, columns=[c[0] for c in columns], show="headings",
             style="MH.Treeview", selectmode=selectmode,
@@ -343,6 +421,7 @@ class AdminDashboard:
         return tree
 
     def _back_row(self, text, command):
+        # Renders a top-left back button bar for sub-screens (like student detail or add/edit forms)
         row = tk.Frame(self.content_host, bg=MH_THEME["bg_black"])
         row.pack(fill="x", pady=(0, 12))
         self._btn(row, text, command, kind="dark").pack(side="left")
@@ -358,20 +437,20 @@ class AdminDashboard:
         tk.Label(card.inner, text=search_label, bg=MH_THEME["bg_card"],
                  fg=MH_THEME["text_white"],
                  font=("Segoe UI", 10, "bold")).pack(side="left", padx=(0, 10))
-
+        # Filter the table live as the user types in the search box
         entry = self._entry(card.inner, search_var)
         entry.configure(width=28)
         entry.pack(side="left", ipady=5, padx=(0, 10))
         entry.bind("<KeyRelease>", lambda _e: on_change())
 
         self._btn(card.inner, "Clear", on_clear, "dark").pack(side="left")
-
+        # Filter the table live as the user types in the search box
         for text, command, kind in reversed(actions):
             self._btn(card.inner, text, command, kind).pack(side="right", padx=(8, 0))
 
     @staticmethod
     def _selected_id(tree, noun):
-        """Returns the selected row id (its iid) or warns and returns None."""
+        # Check whether a table row is highlighted before running Edit, View, or Delete actions
         selected = tree.selection()
         if not selected:
             messagebox.showinfo(f"Select a {noun}", f"Please select a {noun.lower()} row first.")
@@ -383,8 +462,14 @@ class AdminDashboard:
     # ------------------------------------------------------------------
 
     def _configure_styles(self):
+        """
+        Sets up custom ttk styles for Treeview tables and Combobox dropdowns
+        so they match the dark Monster High purple-and-pink theme instead of
+        default OS gray widgets.
+        """
         style = ttk.Style()
         try:
+            # Switch to 'clam' so background and heading colors can be customized cleanly
             style.theme_use("clam")
         except tk.TclError:
             pass
@@ -410,12 +495,16 @@ class AdminDashboard:
             arrowcolor=MH_THEME["accent_pink"],
         )
 
-        # dark dropdown lists for the comboboxes
+        # Style the pop-out dropdown listboxes inside Comboboxes to stay dark
         self.root.option_add("*TCombobox*Listbox.background", MH_THEME["bg_input"])
         self.root.option_add("*TCombobox*Listbox.foreground", MH_THEME["text_white"])
         self.root.option_add("*TCombobox*Listbox.selectBackground", MH_THEME["accent_pink"])
 
     def _build_layout(self):
+        """
+        Splits the main window into a fixed-width sidebar on the left and a
+        flexible content container on the right where each section is drawn.
+        """
         self.root_frame = tk.Frame(self.root, bg=MH_THEME["bg_black"])
         self.root_frame.pack(fill="both", expand=True)
 
@@ -424,6 +513,7 @@ class AdminDashboard:
             highlightbackground=MH_THEME["border_purple"], highlightthickness=1,
         )
         self.sidebar.pack(side="left", fill="y")
+        # Keep the sidebar locked at 240px wide instead of shrinking to its buttons
         self.sidebar.pack_propagate(False)
 
         self.main_area = tk.Frame(self.root_frame, bg=MH_THEME["bg_black"])
@@ -438,9 +528,13 @@ class AdminDashboard:
         self.main_area.bind("<Configure>", self._update_content_padding)
 
     def _build_sidebar(self):
+        """
+        Builds the left navigation sidebar with the school logo, section buttons,
+        corner spiderweb decorations, and the logout button at the bottom.
+        """
         brand_box = tk.Frame(self.sidebar, bg=MH_THEME["bg_sidebar"], padx=18, pady=22)
         brand_box.pack(fill="x")
-
+        # Try loading the school logo image; fall back to text if the file is missing
         logo_loaded = False
         try:
             logo_image = Image.open(LOGO_FILE)
@@ -475,7 +569,7 @@ class AdminDashboard:
             ("grades", "📋  Manage Grades"),
             ("reports", "📄  Generate Reports"),
         ]
-
+        # Create a button for each portal section and store it in self.nav_buttons for highlighting
         for key, label in nav_items:
             btn = tk.Button(
                 self.sidebar, text=label,
@@ -488,7 +582,7 @@ class AdminDashboard:
             )
             btn.pack(fill="x", padx=10, pady=3)
             self.nav_buttons[key] = btn
-
+        # Decorative spiderwebs anchored to the bottom corners of the sidebar
         web_canvas = tk.Canvas(
             self.sidebar, bg=MH_THEME["bg_sidebar"], height=70,
             highlightthickness=0, bd=0,
@@ -507,23 +601,32 @@ class AdminDashboard:
         ).pack(side="bottom", fill="x", padx=14, pady=12)
 
     def _logout(self):
+        """
+        Asks the user to confirm logout, prevents double-clicks from running it twice,
+        and either calls on_logout or closes this window so the login screen returns.
+        """
+        if self._logging_out:
+            return
+
         if not messagebox.askyesno("Logout", "Are you sure you want to log out?"):
             return
 
+        self._logging_out = True
+
+        # If a custom callback was passed in, tear down this frame and hand control back
         if self.on_logout:
             self.root_frame.destroy()
             self.on_logout()
-        else:
-            from screens.monster_login import LoginScreen
-            auth = self.auth_service
-            if auth is None:
-                from services.auth_service import AuthService
-                auth = AuthService()
-            self.root.destroy()
-            app = LoginScreen(auth)
-            app.mainloop()
+            return
+
+        """
+        Close this dashboard window so the waiting login screen detects the window
+        closing and shows itself again without spawning a duplicate login window.
+        """
+        self.root.destroy()
 
     def _highlight_nav(self, active_key):
+        # Highlights the selected sidebar tab in pink and resets all other tabs to default
         self.active_tab = active_key
         for key, btn in self.nav_buttons.items():
             if key == active_key:
@@ -533,21 +636,29 @@ class AdminDashboard:
 
     def _update_content_padding(self, event=None):
         """Centers the home page with a max width; other sections use normal padding."""
-        width = self.main_area.winfo_width()
-        if width <= 1:
-            return
-        if self.active_tab == "dashboard":
-            side_pad = max(28, (width - self.MAX_CONTENT_WIDTH) // 2)
-        else:
-            side_pad = 28
-        self.content_host.pack_configure(padx=side_pad)
+        try:
+            width = self.main_area.winfo_width()
+            # Skip if the window hasn't finished measuring its width yet
+            if width <= 1:
+                return
+            if self.active_tab == "dashboard":
+                side_pad = max(28, (width - self.MAX_CONTENT_WIDTH) // 2)
+            else:
+                side_pad = 28
+            self.content_host.pack_configure(padx=side_pad)
+        except tk.TclError:
+            pass
 
     def _clear_content(self):
+        # Removes all widgets currently inside content_host before rendering a new screen
         for widget in self.content_host.winfo_children():
             widget.destroy()
 
     def show_section(self, section_key):
-        """Switches between the dashboard sections (all drawn in this window)."""
+        """
+        Switches between dashboard sections, reloading fresh data from the services
+        every time so any edits made in one section appear immediately in others.
+        """
         self._load_data()
         self._highlight_nav(section_key)
         self._clear_content()
@@ -561,7 +672,7 @@ class AdminDashboard:
             "reports": self._render_reports,
         }
         renderers[section_key]()
-
+         # Re-apply padding once Tkinter finishes laying out the new section's widgets
         self.root.after_idle(self._update_content_padding)
 
     def _header(self, title, subtitle, action=None):
@@ -609,12 +720,17 @@ class AdminDashboard:
     # ------------------------------------------------------------------
 
     def _render_home(self):
+        """
+        Draws the main Admin home overview with a welcome banner, four summary
+        stat cards across the top, and three quick-access navigation cards below.
+        """
+        # Top header banner with a shortcut button to open the Add Student form right away
         self._header(
             "Welcome Back, Admin!",
             "Monster High Academy overview and quick controls.",
             action=("+ Quick Add Student", self._render_student_form),
         )
-
+        # Row of 4 equal-width stat cards showing live counts from the loaded data
         stats_row = tk.Frame(self.content_host, bg=MH_THEME["bg_black"])
         stats_row.pack(fill="x", pady=(0, 22))
         stats_row.columnconfigure((0, 1, 2, 3), weight=1, uniform="stats")
@@ -627,7 +743,7 @@ class AdminDashboard:
         ]
         for idx, (label, value, accent) in enumerate(stats):
             self._stat_card(stats_row, idx, label, value, accent)
-
+        # Bottom row of 3 equal-width shortcut cards that jump to the main management tabs
         row = tk.Frame(self.content_host, bg=MH_THEME["bg_black"])
         row.pack(fill="both", expand=True)
         row.columnconfigure((0, 1, 2), weight=1, uniform="main_cards")
@@ -645,16 +761,24 @@ class AdminDashboard:
             self._shortcut_card(row, col, icon, title, desc, btn_text, section, accent)
 
     def _stat_card(self, parent, col, label, value, accent):
+        """
+        Creates one of the top summary stat cards (like Total Students or Total Teachers)
+        with a title, a skull icon in the corner, and the big number underneath.
+        """
         card = RoundedCard(parent, radius=18, padding=18, height=122)
+        
+        # Skip outer left padding on the first card and outer right padding on the last so the row lines up flush
         card.grid(row=0, column=col, padx=(0 if col == 0 else 8, 0 if col == 3 else 8), sticky="ew")
-
+        
+        # Top row inside the card holding the uppercase label on the left and the skull icon on the right
+        top = tk.Frame(card.inner, bg=MH_THEME["bg_card"])
         top = tk.Frame(card.inner, bg=MH_THEME["bg_card"])
         top.pack(fill="x")
         tk.Label(top, text=label, bg=MH_THEME["bg_card"], fg=MH_THEME["text_muted"],
                  font=("Segoe UI", 9, "bold")).pack(side="left")
         tk.Label(top, text="☠", bg=MH_THEME["bg_card"], fg=accent,
                  font=("Segoe UI", 11)).pack(side="right")
-
+        # Large bold counter number below the header row
         tk.Label(card.inner, text=str(value), bg=MH_THEME["bg_card"], fg=accent,
                  font=("Trebuchet MS", 28, "bold"), anchor="w").pack(fill="x", pady=(4, 0))
 
@@ -1029,10 +1153,9 @@ class AdminDashboard:
 
         self.teacher_tree = self._table(table_card.inner, [
             ("id", "Teacher ID", 90, "center"),
-            ("name", "Teacher Name", 170, "w"),
-            ("email", "Email", 200, "w"),
-            ("specialty", "Subject Taught", 140, "w"),
-            ("assigned", "Assigned Subjects", 220, "w"),
+            ("name", "Teacher Name", 190, "w"),
+            ("email", "Email", 220, "w"),
+            ("assigned", "Assigned Subjects", 260, "w"),
         ])
         self.teacher_tree.bind("<Double-1>", lambda _e: self._edit_selected_teacher())
 
@@ -1119,7 +1242,6 @@ class AdminDashboard:
             "first": tk.StringVar(value=t.get("first_name", "")),
             "last": tk.StringVar(value=t.get("last_name", "")),
             "email": tk.StringVar(value=t.get("email") or ""),
-            "subject": tk.StringVar(value=t.get("subject_taught") or ""),
             "gender": tk.StringVar(value=t.get("gender") or ""),
             "dob": tk.StringVar(value=str(t.get("date_of_birth") or "")[:10]),
         }
@@ -1127,20 +1249,18 @@ class AdminDashboard:
         self._field(form, "First Name *", lambda b: self._entry(b, v["first"]), 0, 0)
         self._field(form, "Last Name *", lambda b: self._entry(b, v["last"]), 0, 1)
         self._field(form, "Email", lambda b: self._entry(b, v["email"]), 1, 0)
-        self._field(form, "Subject Taught *", lambda b: self._entry(b, v["subject"]), 1, 1)
         self._field(form, "Gender",
-                    lambda b: self._combo(b, ["Female", "Male", "Other"], v["gender"]), 2, 0)
-        self._field(form, "Date of Birth (YYYY-MM-DD)", lambda b: self._entry(b, v["dob"]), 2, 1)
+                    lambda b: self._combo(b, ["Female", "Male", "Other"], v["gender"]), 1, 1)
+        self._field(form, "Date of Birth (YYYY-MM-DD)", lambda b: self._entry(b, v["dob"]), 2, 0)
 
         def save():
             first = v["first"].get().strip()
             last = v["last"].get().strip()
-            subject = v["subject"].get().strip()
 
-            if not first or not last or not subject:
+            if not first or not last:
                 messagebox.showwarning(
                     "Missing Information",
-                    "Please complete the first name, last name and subject taught.",
+                    "Please complete the first name and last name.",
                 )
                 return
 
@@ -1164,14 +1284,13 @@ class AdminDashboard:
                     self._teacher_id(t),
                     {
                         "first_name": first, "last_name": last, "email": email,
-                        "subject_taught": subject, "gender": gender,
-                        "date_of_birth": dob,
+                        "gender": gender, "date_of_birth": dob,
                     },
                 )
                 success = "Teacher updated successfully."
             else:
                 result = self.teacher_service.add_teacher(
-                    first, last, email, subject, gender, date_of_birth=dob,
+                    first, last, email, None, gender, date_of_birth=dob,
                 )
                 success = "Teacher added successfully."
 
@@ -1185,7 +1304,7 @@ class AdminDashboard:
         buttons = tk.Frame(card.inner, bg=MH_THEME["bg_card"])
         buttons.pack(fill="x", pady=(14, 0))
         self._btn(buttons, "Save Changes" if editing else "Register Teacher", save).pack(side="left")
-        self._btn(buttons, "Cancel", lambda: self.show_section("teachers"), "dark").pack(side="left", padx=(10, 0))
+        self._btn(buttons, "Cancel", lambda: self.show_section("teachers"), "dark").pack(side="left", padx=(10, 0)) 
 
     # ------------------------------------------------------------------
     # SUBJECTS: list, search, add, edit, delete
@@ -1582,16 +1701,22 @@ class AdminDashboard:
     # ------------------------------------------------------------------
 
     def _render_reports(self):
+        """
+        Draws the Generate Reports screen where an admin can choose a student,
+        academic year, and term, then export their formatted PDF report card.
+        """
         self._header("Generate Reports", "Create a PDF report card for any student.")
 
         card = RoundedCard(self.content_host, border_color=MH_THEME["accent_pink"],
                            radius=18, padding=22)
         card.pack(fill="x")
 
+        # Three-column layout for Student, Academic Year, and Academic Term
         grid = tk.Frame(card.inner, bg=MH_THEME["bg_card"])
         grid.pack(fill="x")
         grid.columnconfigure((0, 1, 2), weight=1, uniform="r")
 
+        # Format dropdown items as "ID - Full Name" so _choice_id() can extract the ID on submit
         student_choices = [
             f"{s.get('person_id')} - {self._student_name(s.get('person_id'))}"
             for s in self.students
@@ -1605,6 +1730,7 @@ class AdminDashboard:
         self._field(grid, "Select Student",
                     lambda b: self._combo(b, student_choices, student_var), 0, 0)
         self._field(grid, "Academic Year", lambda b: self._entry(b, year_var), 0, 1)
+        # Set state to "normal" so custom term labels can also be typed if needed
         self._field(grid, "Academic Term",
                     lambda b: self._combo(b, ["Term 1", "Term 2", "Term 3"], term_var, "normal"), 0, 2)
 
@@ -1620,6 +1746,7 @@ class AdminDashboard:
 
     def _generate_report(self, student_id, academic_year, academic_term):
         """Builds a PDF report card (used by the Reports section and the student view)."""
+        # Stop early if any required selection or period field was left blank
         if not student_id or not academic_year or not academic_term:
             messagebox.showwarning(
                 "Missing Information",
@@ -1628,14 +1755,17 @@ class AdminDashboard:
             return
 
         try:
+            # Gather the student's profile, subject scores, averages, and remarks for that term
             report_data = self.report_service.prepare_report(
                 student_id, academic_year, academic_term
             )
 
+            # ReportService returns an error message string if the student or grades aren't found
             if isinstance(report_data, str):
                 messagebox.showerror("Report Error", report_data)
                 return
 
+            # Render the PDF file to disk and increment the session counter shown on the dashboard
             file_path = self.pdf_generator.generate_report(report_data)
             self.reports_generated += 1
 
@@ -1645,14 +1775,8 @@ class AdminDashboard:
             )
 
         except Exception as err:
+            # Catch unexpected file-write or PDF rendering failures and show the error to the user
             messagebox.showerror(
                 "Report Generation Error",
                 f"Unable to generate student report:\n{err}",
             )
-
-
-# allows running this dashboard file directly for testing
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = AdminDashboard(root)
-    root.mainloop()

@@ -236,7 +236,3 @@ class LoginScreen(tk.Tk):
         self.destroy()
 
 
-if __name__ == "__main__":
-    from services.auth_service import AuthService  # change to where your AuthService is
-
-    LoginScreen(AuthService()).mainloop()

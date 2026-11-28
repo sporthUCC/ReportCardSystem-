@@ -8,11 +8,16 @@ class Teacher(User):
         return self.__subject_taught
     # Setter method to update the subject taught by the teacher with validation.
     def set_subject_taught(self, subject_taught):
-        # Validation to ensure that the subject taught is a non-empty string.
-        if not isinstance(subject_taught, str) or not subject_taught.strip():
-            raise ValueError("Subject taught cannot be empty")
+        # Subject taught is optional because subjects are assigned in Manage Subjects.
+        if subject_taught is None:
+            self.__subject_taught = None
+            return
 
-        self.__subject_taught = subject_taught.strip()
+        if not isinstance(subject_taught, str):
+            raise ValueError("Subject taught must be text")
+
+        # Blank text is stored as None
+        self.__subject_taught = subject_taught.strip() or None
     #Polymorphism: Overriding the get_person_details method to include the subject taught by the teacher. This demonstrates polymorphism, where the same method name behaves differently based on the object calling it.
     def get_person_details(self):
         details = super().get_person_details()
@@ -25,9 +30,8 @@ class Teacher(User):
     
     # This defines the user role priviledges and inherits from the user
     def get_user_permission(self):
-        return[
+        return [
             "enter_grades",
             "update_grades",
             "view_student_records"
         ]
-        
