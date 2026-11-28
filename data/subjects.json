@@ -1,1 +1,17 @@
-[]
+[
+    {
+        "subject_id": "SUB001",
+        "subject_name": "Mathematics",
+        "teacher_id": "TCH002"
+    },
+    {
+        "subject_id": "SUB002",
+        "subject_name": "English",
+        "teacher_id": "TCH002"
+    },
+    {
+        "subject_id": "SUB003",
+        "subject_name": "Integrated Science",
+        "teacher_id": "TCH003"
+    }
+]

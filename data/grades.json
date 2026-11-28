@@ -1,1 +1,35 @@
-[]
+[
+    {
+        "grade_id": "GRD001",
+        "student_id": "STU001",
+        "subject_id": "SUB001",
+        "academic_year": "2026-2027",
+        "academic_term": "Term 1",
+        "coursework": 79.5,
+        "project": 90,
+        "midterm": 90,
+        "final_exam": 90
+    },
+    {
+        "grade_id": "GRD002",
+        "student_id": "STU001",
+        "subject_id": "SUB002",
+        "academic_year": "2026-2027",
+        "academic_term": "Term 1",
+        "coursework": 100,
+        "project": 89,
+        "midterm": 90,
+        "final_exam": 90
+    },
+    {
+        "grade_id": "GRD003",
+        "student_id": "STU001",
+        "subject_id": "SUB003",
+        "academic_year": "2026-2027",
+        "academic_term": "Term 1",
+        "coursework": 50,
+        "project": 70,
+        "midterm": 65,
+        "final_exam": 45
+    }
+]

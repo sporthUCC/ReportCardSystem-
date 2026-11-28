@@ -1,1 +1,29 @@
-[]
+[
+    {
+        "person_id": "TCH001",
+        "first_name": "Daniel",
+        "last_name": "Foster",
+        "email": "daniel.foster@mha.monsterhighacademy.edu.com",
+        "date_of_birth": "1980-01-01",
+        "gender": "Male",
+        "subject_taught": null
+    },
+    {
+        "person_id": "TCH002",
+        "first_name": "Charlotte",
+        "last_name": "Reid",
+        "email": "charlotte.reid@mha.monsterhighacademy.edu.com",
+        "date_of_birth": "1977-01-01",
+        "gender": "Female",
+        "subject_taught": null
+    },
+    {
+        "person_id": "TCH003",
+        "first_name": "Ethan",
+        "last_name": "Mitchell",
+        "email": "ethan.mitchell@mha.monsterhighacademy.edu.com",
+        "date_of_birth": "1961-01-09",
+        "gender": "Male",
+        "subject_taught": null
+    }
+]
